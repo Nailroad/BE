@@ -1,0 +1,16 @@
+package nailroad.global.common;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+import java.time.LocalDateTime;
+import lombok.Getter;
+import org.springframework.data.annotation.LastModifiedDate;
+
+@Getter
+@MappedSuperclass
+public abstract class BaseEntity extends BaseCreatedEntity {
+
+	@LastModifiedDate
+	@Column(name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
+}

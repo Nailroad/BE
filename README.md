@@ -8,8 +8,21 @@
 
 - Java 21
 - Spring Boot 4.1.2 · Spring MVC
+- Spring Data JPA · PostgreSQL
 - Gradle Wrapper 9.8.2
 - SpringDoc OpenAPI 3.2.0
+
+## 로컬 실행
+
+PostgreSQL 연결 정보를 환경변수로 지정한 뒤 `./gradlew bootRun`을 실행합니다.
+
+| 환경변수 | 설명 |
+| --- | --- |
+| `DB_URL` | JDBC URL (예: `jdbc:postgresql://localhost:5432/nailroad`) |
+| `DB_USERNAME` | PostgreSQL 사용자 이름 |
+| `DB_PASSWORD` | PostgreSQL 비밀번호 |
+
+`./gradlew test`도 위 환경변수로 PostgreSQL에 연결합니다. 테스트에서는 스키마 자동 변경을 끕니다.
 
 ## 팀원
 
