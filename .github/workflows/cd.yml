@@ -38,8 +38,6 @@ jobs:
           platforms: linux/amd64
           tags: ${{ env.IMAGE }}
           push: true
-      - name: 게시한 이미지 주소 표시
-        run: printf '`APP_IMAGE=%s`\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     if: github.ref == 'refs/heads/main'
