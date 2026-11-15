@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/nailroad-backend:${{ github.sha }}
+  IMAGE: ${{ vars.DOCKER_IMAGE }}:${{ github.sha }}
 
 jobs:
   verify:
