@@ -1,0 +1,96 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['image-*']
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ${{ vars.DOCKER_IMAGE }}:${{ github.sha }}
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: app-jar
+          path: build/libs
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}
+          push: true
+      - name: 게시한 이미지 주소 표시
+        run: printf '`APP_IMAGE=%s`\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: nailroad-production
+      cancel-in-progress: false
+    steps:
+      - name: main 최신 커밋 확인
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$latest" == "$GITHUB_SHA" ]]; then
+            echo 'current=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main에 더 최신 커밋이 있어 배포를 건너뜁니다."
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.release.outputs.current == 'true'
+        with:
+          persist-credentials: false
+      - name: EC2 백엔드 갱신
+        if: steps.release.outputs.current == 'true'
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ vars.EC2_USERNAME || 'ubuntu' }}
+          EC2_SSH_PORT: ${{ vars.EC2_SSH_PORT || '22' }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          : "${EC2_HOST:?Set EC2_HOST}" "${EC2_SSH_KEY:?Set EC2_SSH_KEY}" "${EC2_KNOWN_HOSTS:?Set EC2_KNOWN_HOSTS}"
+          install -d -m 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/nailroad-deploy
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/nailroad-deploy
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+          target="$EC2_USERNAME@$EC2_HOST"
+          incoming=".incoming-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          options=(-i ~/.ssh/nailroad-deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
+          ssh "${options[@]}" -p "$EC2_SSH_PORT" "$target" "mkdir -p ~/nailroad/$incoming"
+          scp "${options[@]}" -P "$EC2_SSH_PORT" -r compose-prod.yaml nginx scripts "$target:nailroad/$incoming/"
+          printf -v remote_command "cd ~/nailroad && trap 'rm -rf -- %s' EXIT && bash %q %q %q" \
+            "$incoming" "$incoming/scripts/deploy.sh" "$IMAGE" "$incoming"
+          ssh "${options[@]}" -p "$EC2_SSH_PORT" "$target" "$remote_command"
+      - name: 외부 HTTPS 응답 확인
+        if: steps.release.outputs.current == 'true'
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --connect-timeout 5 --max-time 15 --output /dev/null \
+            https://api.nailroad.site/actuator/health
