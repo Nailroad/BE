@@ -1,0 +1,59 @@
+name: nailroad
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    image: ${APP_IMAGE}
+    restart: unless-stopped
+    mem_limit: ${APP_MEM_LIMIT:-700m}
+    environment:
+      DB_URL: ${DB_URL:?Set DB_URL in .env}
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=65.0"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 20s
+    logging: *logging
+
+  nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./nginx
+        target: /etc/nginx/conf.d
+        read_only: true
+        bind:
+          create_host_path: false
+      - acme-webroot:/var/www/certbot:ro
+      - certificates:/etc/letsencrypt:ro
+    logging: *logging
+
+  certbot:
+    image: certbot/certbot:v5.10.0
+    profiles: [tools]
+    volumes:
+      - acme-webroot:/var/www/certbot
+      - certificates:/etc/letsencrypt
+
+volumes:
+  acme-webroot:
+    name: nailroad-acme-webroot
+  certificates:
+    name: nailroad-certificates
