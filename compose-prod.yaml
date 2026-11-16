@@ -28,6 +28,15 @@ services:
   nginx:
     image: nginx:stable-alpine
     restart: unless-stopped
+    # 갱신된 인증서를 읽도록 주기적으로 설정을 검사하고 리로드합니다.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        while sleep 6h; do
+          nginx -t && nginx -s reload
+        done &
+        exec /docker-entrypoint.sh nginx -g 'daemon off;'
     depends_on:
       app:
         condition: service_healthy
@@ -47,10 +56,21 @@ services:
 
   certbot:
     image: certbot/certbot:v5.10.0
-    profiles: [tools]
+    restart: unless-stopped
+    # 수동 발급이나 dry-run은 compose run --entrypoint certbot으로 실행합니다.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        trap 'exit 0' TERM INT
+        while :; do
+          certbot renew --quiet
+          sleep 12h &
+          wait "$$!"
+        done
     volumes:
       - acme-webroot:/var/www/certbot
       - certificates:/etc/letsencrypt
+    logging: *logging
 
 volumes:
   acme-webroot:

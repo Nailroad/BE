@@ -47,6 +47,20 @@ log "Validating the production Compose configuration."
 release_compose=(docker compose --project-directory "$PWD" -f "$release_compose_file")
 APP_IMAGE="$image" "${release_compose[@]}" config --quiet
 
+# 첫 운영 배포에서 인증서와 443 설정이 준비되었는지 앱 교체 전에 확인합니다.
+if ! grep -Eq '^[[:space:]]*listen[[:space:]]+443[[:space:]]+ssl([[:space:]]+[^;]+)?[[:space:]]*;' "$nginx_config"; then
+  echo "Enable HTTPS in $nginx_config before deploying." >&2
+  exit 1
+fi
+if ! APP_IMAGE="$image" "${release_compose[@]}" run --rm --no-deps --entrypoint /bin/sh nginx -ec '
+  cert_dir=/etc/letsencrypt/live/api.nailroad.site
+  test -s "$cert_dir/fullchain.pem"
+  test -s "$cert_dir/privkey.pem"
+'; then
+  echo "Could not verify TLS certificate files. Issue the certificate for api.nailroad.site before deploying." >&2
+  exit 1
+fi
+
 # 새 컨테이너를 띄우기 전에 롤백에 사용할 현재 앱 이미지 참조를 기록합니다.
 previous_container=$(APP_IMAGE="$image" "${release_compose[@]}" ps -q app)
 previous_image=
@@ -67,8 +81,8 @@ start_and_check() {
   local APP_IMAGE=$1
   export APP_IMAGE
 
-  log "Starting app and NGINX with app image $APP_IMAGE."
-  docker compose -f "$compose_file" up -d --wait --wait-timeout 120 app nginx || return
+  log "Starting app, NGINX and Certbot with app image $APP_IMAGE."
+  docker compose -f "$compose_file" up -d --wait --wait-timeout 120 app nginx certbot || return
 
   # 앱이 준비되면 NGINX가 새 앱 주소를 읽도록 설정 검사 후 리로드합니다.
   log "Testing the NGINX configuration."
@@ -86,7 +100,7 @@ start_and_check() {
 # 실패 로그를 남기고 이전 이미지가 있으면 복구를 시도한 뒤 CD에 실패를 알립니다.
 if ! start_and_check "$image"; then
   log "Deployment checks failed for $image." >&2
-  APP_IMAGE="$image" docker compose -f "$compose_file" logs --tail 100 app nginx >&2 || true
+  APP_IMAGE="$image" docker compose -f "$compose_file" logs --tail 100 app nginx certbot >&2 || true
   if [[ -n "$previous_image" && "$previous_image" != "$image" ]]; then
     log "Restoring previous app image $previous_image."
     if start_and_check "$previous_image"; then
