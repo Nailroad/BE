@@ -53,6 +53,7 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Docker Hub 이미지 게시
+        id: push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         timeout-minutes: 15
         with:
@@ -77,6 +78,8 @@ jobs:
         if: steps.release.outputs.current == 'true'
         timeout-minutes: 15
         env:
+          # 운영 서버는 이번 실행에서 게시한 이미지의 digest로 다운로드합니다.
+          IMAGE: ${{ vars.DOCKER_IMAGE }}@${{ steps.push.outputs.digest }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ vars.EC2_USERNAME || 'ubuntu' }}
           EC2_SSH_PORT: ${{ vars.EC2_SSH_PORT || '22' }}
