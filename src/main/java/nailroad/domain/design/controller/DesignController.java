@@ -32,12 +32,6 @@ public class DesignController {
         return ApiResponse.onSuccess("디자인 목록을 조회했습니다.",
                 designService.search(userId, keyword, categoryCode, shapeCode, colorCode, tagName, cursor, size));
     }
-
-
-    //디자인 상세 조회
-    @GetMapping
-
-
 }
 
 

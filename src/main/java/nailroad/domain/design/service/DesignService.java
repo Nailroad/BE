@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import nailroad.domain.design.code.DesignErrorCode;
 import nailroad.domain.design.dto.DesignSearchResponse;
 import nailroad.domain.design.entity.Design;
-import nailroad.domain.design.entity.DesignLike;
 import nailroad.domain.design.entity.Tag;
 import nailroad.domain.design.enums.DesignCategoryCode;
 import nailroad.domain.design.enums.DesignColorCode;

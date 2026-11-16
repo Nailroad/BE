@@ -31,12 +31,12 @@ class DesignServiceTest {
         Design first = design(90L, "하트", DesignColorCode.RED);
         Design second = design(80L, "봄 네일", DesignColorCode.PINK);
         Design third = design(70L, "꽃", DesignColorCode.PINK);
+        Tag firstTag = tag(first, TagName.WINTER_NAIL);
+        Tag secondTag = tag(second, TagName.SPRING_WARM_NAIL);
+        Tag thirdTag = tag(third, TagName.SPRING_WARM_NAIL);
         when(designs.findByIdLessThanOrderByIdDesc(eq(Long.MAX_VALUE), any(Pageable.class)))
                 .thenReturn(List.of(first, second, third));
-        when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(
-                tag(first, TagName.WINTER_NAIL),
-                tag(second, TagName.SPRING_WARM_NAIL),
-                tag(third, TagName.SPRING_WARM_NAIL)));
+        when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(firstTag, secondTag, thirdTag));
         when(likes.findByUser_IdAndDesign_IdInAndLikedTrue(eq(1L), anyCollection()))
                 .thenReturn(List.of());
 
@@ -52,9 +52,10 @@ class DesignServiceTest {
     @Test
     void tagFilterUsesEnumAndKeywordCanMatchDesignName() {
         Design design = design(20L, "화이트 프렌치", DesignColorCode.WHITE);
+        Tag weddingTag = tag(design, TagName.WEDDING_NAIL);
         when(designs.findByIdLessThanOrderByIdDesc(eq(Long.MAX_VALUE), any(Pageable.class)))
                 .thenReturn(List.of(design));
-        when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(tag(design, TagName.WEDDING_NAIL)));
+        when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(weddingTag));
         when(likes.findByUser_IdAndDesign_IdInAndLikedTrue(eq(1L), anyCollection()))
                 .thenReturn(List.of());
 
