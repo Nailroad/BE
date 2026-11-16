@@ -68,21 +68,30 @@ if [[ -n "$previous_container" ]]; then
   previous_image=$(docker inspect --format '{{.Config.Image}}' "$previous_container")
 fi
 
-# 새 이미지 다운로드를 마친 뒤 운영 Compose 파일을 교체합니다.
+# 새 이미지 다운로드를 마친 뒤 내용이 달라진 운영 Compose 파일만 교체합니다.
 log "Pulling app image $image."
 APP_IMAGE="$image" "${release_compose[@]}" pull app
+previous_compose_file=
 if [[ -n "$staged_release" ]]; then
   mkdir -p scripts
   cp "$staged_release/scripts/deploy.sh" scripts/
-  mv "$release_compose_file" "$compose_file"
+  if [[ ! -f "$compose_file" ]]; then
+    mv "$release_compose_file" "$compose_file"
+  elif ! cmp -s "$compose_file" "$release_compose_file"; then
+    # 배포에 실패하면 복원할 수 있도록 교체 전에 운영 설정을 보관합니다.
+    previous_compose_file=$(mktemp .compose-previous.XXXXXX)
+    cp -p "$compose_file" "$previous_compose_file"
+    mv "$release_compose_file" "$compose_file"
+  fi
 fi
 
 start_and_check() {
   local APP_IMAGE=$1
   export APP_IMAGE
 
-  log "Starting app, NGINX and Certbot with app image $APP_IMAGE."
-  docker compose -f "$compose_file" up -d --wait --wait-timeout 120 app nginx certbot || return
+  # 현재 Compose에서 활성화된 서비스만 시작합니다. 이전 설정에서는 Certbot이 수동 서비스일 수 있습니다.
+  log "Starting production services with app image $APP_IMAGE."
+  docker compose -f "$compose_file" up -d --wait --wait-timeout 120 || return
 
   # 앱이 준비되면 NGINX가 새 앱 주소를 읽도록 설정 검사 후 리로드합니다.
   log "Testing the NGINX configuration."
@@ -97,11 +106,43 @@ start_and_check() {
     --resolve api.nailroad.site:443:127.0.0.1 "$health_url"
 }
 
-# 실패 로그를 남기고 이전 이미지가 있으면 복구를 시도한 뒤 CD에 실패를 알립니다.
-if ! start_and_check "$image"; then
-  log "Deployment checks failed for $image." >&2
-  APP_IMAGE="$image" docker compose -f "$compose_file" logs --tail 100 app nginx certbot >&2 || true
-  if [[ -n "$previous_image" && "$previous_image" != "$image" ]]; then
+# 검증에 성공하면 임시 파일을 완성한 뒤 .env를 교체해 새 APP_IMAGE를 저장합니다.
+save_verified_image() {
+  log "Saving the verified app image tag."
+  updated_env=$(mktemp .env.XXXXXX) || return
+  trap 'rm -f -- "$updated_env"' EXIT
+  sed -E '/^[[:space:]]*(export[[:space:]]+)?APP_IMAGE[[:space:]]*=/d' .env > "$updated_env" || return
+  printf '\nAPP_IMAGE=%s\n' "$image" >> "$updated_env" || return
+  mv "$updated_env" .env
+}
+
+# 실패한 배포에서만 활성화된 서비스를 멈춘 뒤 이전 Compose를 되돌립니다.
+restore_compose() {
+  local previous_services failed_services service
+
+  if previous_services=$(APP_IMAGE="${previous_image:-$image}" docker compose -f "$previous_compose_file" config --services) &&
+    failed_services=$(APP_IMAGE="$image" docker compose -f "$compose_file" config --services); then
+    while IFS= read -r service; do
+      if [[ -n "$service" ]] && ! grep -Fxq -- "$service" <<< "$previous_services"; then
+        APP_IMAGE="$image" docker compose -f "$compose_file" stop "$service" ||
+          log "Failed to stop newly enabled service $service." >&2
+      fi
+    done <<< "$failed_services"
+  fi
+
+  log "Restoring previous Compose file."
+  mv "$previous_compose_file" "$compose_file"
+}
+
+# 설정이 바뀐 배포는 이전 Compose를 먼저 복원하고, 이미지 주소가 같아도 다시 시작합니다.
+if ! start_and_check "$image" || ! save_verified_image; then
+  log "Deployment failed for $image." >&2
+  APP_IMAGE="$image" docker compose -f "$compose_file" logs --tail 100 >&2 || true
+  if [[ -n "$previous_compose_file" ]] && ! restore_compose; then
+    log "Failed to restore the Compose file. Backup: $previous_compose_file." >&2
+    exit 1
+  fi
+  if [[ -n "$previous_image" ]] && [[ "$previous_image" != "$image" || -n "$previous_compose_file" ]]; then
     log "Restoring previous app image $previous_image."
     if start_and_check "$previous_image"; then
       echo "Restored previous app image $previous_image." >&2
@@ -112,11 +153,7 @@ if ! start_and_check "$image"; then
   exit 1
 fi
 
-# 검증에 성공하면 임시 파일을 완성한 뒤 .env를 교체해 새 APP_IMAGE를 저장합니다.
-log "Saving the verified app image tag."
-updated_env=$(mktemp .env.XXXXXX)
-trap 'rm -f -- "$updated_env"' EXIT
-sed -E '/^[[:space:]]*(export[[:space:]]+)?APP_IMAGE[[:space:]]*=/d' .env > "$updated_env"
-printf '\nAPP_IMAGE=%s\n' "$image" >> "$updated_env"
-mv "$updated_env" .env
+if [[ -n "$previous_compose_file" ]]; then
+  rm -f -- "$previous_compose_file" || log "Could not remove Compose backup $previous_compose_file." >&2
+fi
 log "Deployed $image."
