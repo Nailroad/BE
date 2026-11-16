@@ -9,3 +9,12 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
