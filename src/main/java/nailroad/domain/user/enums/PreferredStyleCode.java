@@ -11,3 +11,4 @@ public enum PreferredStyleCode {
     DOT,    // 도트
     CHARACTER     // 캐릭터
 }
+
