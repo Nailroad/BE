@@ -68,6 +68,15 @@ if [[ -n "$previous_container" ]]; then
   previous_image=$(docker inspect --format '{{.Config.Image}}' "$previous_container")
 fi
 
+# EC2의 IAM 역할로 대상 ECR에 로그인한 뒤 이미지를 내려받습니다.
+registry=${image%%/*}
+if [[ "$registry" =~ ^[0-9]{12}\.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com$ ]]; then
+  region=${BASH_REMATCH[1]}
+  log "Authenticating to Amazon ECR in $region."
+  aws ecr get-login-password --region "$region" |
+    docker login --username AWS --password-stdin "$registry"
+fi
+
 # 새 이미지 다운로드를 마친 뒤 내용이 달라진 운영 Compose 파일만 교체합니다.
 log "Pulling app image $image."
 APP_IMAGE="$image" "${release_compose[@]}" pull app
