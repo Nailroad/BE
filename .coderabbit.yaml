@@ -1,0 +1,82 @@
+# ================================================================ #
+#                        CodeRabbit 설정 파일                        #
+# ================================================================ #
+
+# 리뷰 언어 설정 - 한국어로 피드백을 받습니다
+language: "ko-KR"
+
+# 리뷰어 톤 설정
+tone_instructions: >-
+  Be concise and respectful. Focus on API contracts, input validation, access control, and data integrity.
+  Explain when each issue occurs, what breaks, and the smallest safe fix.
+  Show code when it clarifies the fix.
+
+# ================================================================ #
+#                        리뷰 상세 설정                              #
+# ================================================================ #
+reviews:
+  # 리뷰 강도 설정
+  # assertive(꼼꼼) / chill(부드럽게) 중 선택
+  profile: "chill"
+
+  # CodeRabbit의 자동 승인 비활성화
+  auto_approvals:
+    enabled: false
+
+  # PR 요약
+  high_level_summary: true       # PR 전반적인 변경 내용 요약
+  changed_files_summary: true    # 파일별 변경 내용 요약
+
+  # 워크스루를 접힌 상태로 표시해 PR 페이지가 너무 길어지는 것을 방지
+  collapse_walkthrough: true
+
+  # 코드 흐름을 시각적으로 파악할 수 있는 시퀀스 다이어그램 생성
+  sequence_diagrams: false
+
+  # 연결된 이슈를 분석해 리뷰에 맥락을 추가
+  assess_linked_issues: true
+
+  # 관련 이슈/PR 자동 링크
+  related_issues: false
+  related_prs: false
+
+  # 레이블 자동 제안/적용 (수동으로 관리)
+  suggested_labels: false
+  auto_apply_labels: false
+
+  # 리뷰어 추천/자동 할당 (수동으로 지정)
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  # PR 요약 마지막에 짧은 시 한 편을 추가
+  poem: false
+
+  # -------------------------------------------------------------- #
+  #                       자동 리뷰 설정                             #
+  # -------------------------------------------------------------- #
+  auto_review:
+    # PR 생성 시 자동으로 리뷰 시작
+    enabled: true
+    # 기존 리뷰가 있는 PR에 새 커밋이 추가되면 변경분만 다시 리뷰
+    auto_incremental_review: true
+
+# ================================================================ #
+#                         채팅 설정                                  #
+# ================================================================ #
+chat:
+  # @coderabbitai 멘션 없이도 PR 코멘트에 자동으로 응답
+  auto_reply: true
+
+# ================================================================ #
+#                       지식 베이스 설정                              #
+# ================================================================ #
+knowledge_base:
+  # 리뷰 시 최신 문서나 정보를 웹에서 검색해 참고할 수 있도록 허용
+  web_search:
+    enabled: true
+
+  # 팀 컨벤션을 리뷰 지침에 반영
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CONTRIBUTING.md"

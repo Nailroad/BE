@@ -1,0 +1,110 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['image-*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    concurrency:
+      group: ${{ github.ref == 'refs/heads/main' && 'nailroad-production' || format('nailroad-image-{0}', github.run_id) }}
+      cancel-in-progress: false
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: nailroad
+          POSTGRES_USER: nailroad
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nailroad -d nailroad"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Gradle 테스트 및 실행 JAR 생성
+        env:
+          DB_URL: jdbc:postgresql://127.0.0.1:5432/nailroad
+          DB_USERNAME: nailroad
+          DB_PASSWORD: ci-only
+        run: ./gradlew test bootJar --console=plain
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: GitHub OIDC로 AWS 인증
+        uses: aws-actions/configure-aws-credentials@acca2b1b2070338fb9fd1ca27ecee81d687e58e5 # v6.1.2
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Amazon ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
+      - name: Amazon ECR 이미지 게시
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        timeout-minutes: 15
+        with:
+          context: .
+          platforms: linux/amd64
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+          push: true
+
+      - name: main 최신 커밋 확인
+        if: github.ref == 'refs/heads/main'
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$latest" == "$GITHUB_SHA" ]]; then
+            echo 'current=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main에 더 최신 커밋이 있어 배포를 건너뜁니다."
+          fi
+      - name: EC2 백엔드 갱신
+        if: steps.release.outputs.current == 'true'
+        timeout-minutes: 15
+        env:
+          # 운영 서버는 이번 실행에서 게시한 이미지의 digest로 다운로드합니다.
+          IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}@${{ steps.push.outputs.digest }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ vars.EC2_USERNAME || 'ubuntu' }}
+          EC2_SSH_PORT: ${{ vars.EC2_SSH_PORT || '22' }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          : "${EC2_HOST:?Set EC2_HOST}" "${EC2_SSH_KEY:?Set EC2_SSH_KEY}" "${EC2_KNOWN_HOSTS:?Set EC2_KNOWN_HOSTS}"
+          install -d -m 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/nailroad-deploy
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/nailroad-deploy
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+          target="$EC2_USERNAME@$EC2_HOST"
+          incoming=".incoming-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          options=(-i ~/.ssh/nailroad-deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
+          ssh "${options[@]}" -p "$EC2_SSH_PORT" "$target" "mkdir -p ~/nailroad/$incoming"
+          scp "${options[@]}" -P "$EC2_SSH_PORT" -r compose-prod.yaml nginx scripts "$target:nailroad/$incoming/"
+          printf -v remote_command "cd ~/nailroad && trap 'rm -rf -- %s' EXIT && bash %q %q %q" \
+            "$incoming" "$incoming/scripts/deploy.sh" "$IMAGE" "$incoming"
+          ssh "${options[@]}" -p "$EC2_SSH_PORT" "$target" "$remote_command"
+      - name: 외부 HTTPS 응답 확인
+        if: steps.release.outputs.current == 'true'
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --connect-timeout 5 --max-time 15 --output /dev/null \
+            https://api.nailroad.site/actuator/health
