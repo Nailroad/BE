@@ -9,13 +9,18 @@ permissions:
   contents: read
   id-token: write
 
+# 운영 배포와 릴리스 태그 생성을 같은 실행 안에서 직렬화합니다.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'nailroad-production' || format('nailroad-image-{0}', github.run_id) }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-24.04
     timeout-minutes: 50
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && 'nailroad-production' || format('nailroad-image-{0}', github.run_id) }}
-      cancel-in-progress: false
+    outputs:
+      release_tag: ${{ steps.version.outputs.tag }}
+      deployment_succeeded: ${{ steps.production_health.outcome == 'success' }}
     services:
       postgres:
         image: postgres:17-alpine
@@ -45,6 +50,21 @@ jobs:
           DB_USERNAME: nailroad
           DB_PASSWORD: ci-only
         run: ./gradlew test bootJar --console=plain
+      - name: Gradle 릴리스 버전 확인
+        if: github.ref == 'refs/heads/main'
+        id: version
+        shell: bash
+        run: |
+          version=$(./gradlew --quiet --console=plain properties --property version | sed -n 's/^version: //p')
+          if [[ -z "$version" ]]; then
+            echo '::error::Gradle 프로젝트 버전을 읽지 못했습니다.'
+            exit 1
+          fi
+          if [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            printf 'tag=v%s\n' "$version" >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::정식 릴리스 버전이 아니므로 Git 태그 생성을 건너뜁니다.'
+          fi
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: GitHub OIDC로 AWS 인증
         uses: aws-actions/configure-aws-credentials@acca2b1b2070338fb9fd1ca27ecee81d687e58e5 # v6.1.2
@@ -104,7 +124,52 @@ jobs:
           ssh "${options[@]}" -p "$EC2_SSH_PORT" "$target" "$remote_command"
       - name: 외부 HTTPS 응답 확인
         if: steps.release.outputs.current == 'true'
+        id: production_health
         run: |
           curl --fail --silent --show-error --retry 5 --retry-all-errors \
             --connect-timeout 5 --max-time 15 --output /dev/null \
             https://api.nailroad.site/actuator/health
+
+  tag_release:
+    needs: release
+    if: needs.release.outputs.deployment_succeeded == 'true' && needs.release.outputs.release_tag != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: 배포 커밋에 Git 릴리스 태그 생성
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.release_tag }}
+        shell: bash
+        run: |
+          tag_ref="refs/tags/$RELEASE_TAG"
+
+          find_tag_commit() {
+            git ls-remote --tags origin "$tag_ref" "$tag_ref^{}" |
+              awk -v ref="$tag_ref" '
+                $2 == ref { tag_sha = $1 }
+                $2 == ref "^{}" { target_sha = $1 }
+                END { print (target_sha != "" ? target_sha : tag_sha) }
+              '
+          }
+
+          tag_commit_sha=$(find_tag_commit)
+          if [[ -z "$tag_commit_sha" ]]; then
+            if git push origin "$GITHUB_SHA:$tag_ref"; then
+              exit 0
+            fi
+
+            # 조회 이후 같은 태그가 생성되었으면 먼저 등록된 태그를 유지합니다.
+            tag_commit_sha=$(find_tag_commit)
+            if [[ -z "$tag_commit_sha" ]]; then
+              exit 1
+            fi
+          fi
+
+          printf '::notice::기존 태그 %s를 유지합니다. 태그 커밋 SHA=%s, 이번 배포 커밋 SHA=%s\n' \
+            "$RELEASE_TAG" "$tag_commit_sha" "$GITHUB_SHA"
