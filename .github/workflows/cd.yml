@@ -49,7 +49,12 @@ jobs:
           DB_URL: jdbc:postgresql://127.0.0.1:5432/nailroad
           DB_USERNAME: nailroad
           DB_PASSWORD: ci-only
-        run: ./gradlew test bootJar --console=plain
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+        run: |
+          : "${AWS_REGION:?Set GitHub Actions variable AWS_REGION}"
+          : "${S3_BUCKET:?Set GitHub Actions variable S3_BUCKET}"
+          ./gradlew test bootJar --console=plain
       - name: Gradle 릴리스 버전 확인
         if: github.ref == 'refs/heads/main'
         id: version

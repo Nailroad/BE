@@ -9,6 +9,10 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+app:
+  s3:
+    bucket: ${S3_BUCKET}
+    region: ${AWS_REGION}
 
 management:
   endpoints:
