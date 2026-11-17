@@ -7,9 +7,7 @@ on:
 
 permissions:
   contents: read
-
-env:
-  IMAGE: ${{ vars.DOCKER_IMAGE }}:${{ github.sha }}
+  id-token: write
 
 jobs:
   release:
@@ -48,18 +46,22 @@ jobs:
           DB_PASSWORD: ci-only
         run: ./gradlew test bootJar --console=plain
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+      - name: GitHub OIDC로 AWS 인증
+        uses: aws-actions/configure-aws-credentials@acca2b1b2070338fb9fd1ca27ecee81d687e58e5 # v6.1.2
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Docker Hub 이미지 게시
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Amazon ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
+      - name: Amazon ECR 이미지 게시
         id: push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         timeout-minutes: 15
         with:
           context: .
           platforms: linux/amd64
-          tags: ${{ env.IMAGE }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
           push: true
 
       - name: main 최신 커밋 확인
@@ -79,7 +81,7 @@ jobs:
         timeout-minutes: 15
         env:
           # 운영 서버는 이번 실행에서 게시한 이미지의 digest로 다운로드합니다.
-          IMAGE: ${{ vars.DOCKER_IMAGE }}@${{ steps.push.outputs.digest }}
+          IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}@${{ steps.push.outputs.digest }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ vars.EC2_USERNAME || 'ubuntu' }}
           EC2_SSH_PORT: ${{ vars.EC2_SSH_PORT || '22' }}
