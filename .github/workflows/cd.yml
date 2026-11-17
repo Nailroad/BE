@@ -149,21 +149,27 @@ jobs:
         run: |
           tag_ref="refs/tags/$RELEASE_TAG"
 
-          find_existing_tag() {
-            git ls-remote --refs origin "$tag_ref" | awk -v ref="$tag_ref" '$2 == ref { print $1 }'
+          find_tag_commit() {
+            git ls-remote --tags origin "$tag_ref" "$tag_ref^{}" |
+              awk -v ref="$tag_ref" '
+                $2 == ref { tag_sha = $1 }
+                $2 == ref "^{}" { target_sha = $1 }
+                END { print (target_sha != "" ? target_sha : tag_sha) }
+              '
           }
 
-          existing_tag=$(find_existing_tag)
-          if [[ -z "$existing_tag" ]]; then
+          tag_commit_sha=$(find_tag_commit)
+          if [[ -z "$tag_commit_sha" ]]; then
             if git push origin "$GITHUB_SHA:$tag_ref"; then
               exit 0
             fi
 
             # 조회 이후 같은 태그가 생성되었으면 먼저 등록된 태그를 유지합니다.
-            existing_tag=$(find_existing_tag)
-            if [[ -z "$existing_tag" ]]; then
+            tag_commit_sha=$(find_tag_commit)
+            if [[ -z "$tag_commit_sha" ]]; then
               exit 1
             fi
           fi
 
-          printf '::notice::기존 태그 %s (%s)를 유지합니다.\n' "$RELEASE_TAG" "$existing_tag"
+          printf '::notice::기존 태그 %s를 유지합니다. 태그 커밋 SHA=%s, 이번 배포 커밋 SHA=%s\n' \
+            "$RELEASE_TAG" "$tag_commit_sha" "$GITHUB_SHA"
