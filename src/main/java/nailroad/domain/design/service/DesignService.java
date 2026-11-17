@@ -2,6 +2,7 @@ package nailroad.domain.design.service;
 
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.design.code.DesignErrorCode;
+import nailroad.domain.design.dto.DesignDetailResponse;
 import nailroad.domain.design.dto.DesignSearchResponse;
 import nailroad.domain.design.entity.Design;
 import nailroad.domain.design.entity.Tag;
@@ -36,6 +37,39 @@ public class DesignService {
     private final DesignRepository designRepository;
     private final TagRepository tagRepository;
     private final DesignLikeRepository designLikeRepository;
+
+    @Transactional(readOnly = true)
+    public DesignDetailResponse getDetail(Long userId, Long designId) {
+        if (userId == null) {
+            throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+        }
+        if (designId == null || designId < 1) {
+            throw new CustomException(GlobalErrorCode.BAD_REQUEST);
+        }
+
+        Design design = designRepository.findById(designId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.NOT_FOUND));
+        List<TagName> tagNames = tagRepository.findByDesign_IdIn(List.of(designId)).stream()
+                .map(Tag::getTagName)
+                .distinct()
+                .sorted()
+                .toList();
+        boolean isLiked = !designLikeRepository
+                .findByUser_IdAndDesign_IdInAndLikedTrue(userId, List.of(designId))
+                .isEmpty();
+
+        return new DesignDetailResponse(
+                design.getId(),
+                design.getShop().getId(),
+                design.getName(),
+                design.getDesignImageUrl(),
+                design.getCategoryCodes(),
+                design.getShapeCodes(),
+                design.getColorCodes(),
+                tagNames,
+                isLiked
+        );
+    }
 
     @Transactional(readOnly = true)
     public DesignSearchResponse search(Long userId, String keyword, List<String> categoryCode,
