@@ -26,6 +26,8 @@ PostgreSQL 연결 정보를 환경변수로 지정한 뒤 `./gradlew bootRun`을
 
 디자인 이미지의 `design_image_url`에는 URL 대신 S3 객체 키(예: `designs/example.jpg`)를 저장합니다. 목록과 상세 응답의 `designImageUrl`은 15분 동안 유효한 읽기용 Presigned URL입니다. 실행 환경에는 AWS 기본 자격 증명 체인으로 S3 객체 읽기 권한을 제공해야 합니다.
 
+GitHub Actions의 CI/CD 테스트에는 repository variable `AWS_REGION`, `S3_BUCKET`을 설정합니다. 운영 컨테이너에는 서버의 `.env`에 같은 값이 필요합니다. 배포용 `compose-prod.yaml`이 이 값을 컨테이너에 전달합니다.
+
 `./gradlew test`도 위 환경변수로 PostgreSQL에 연결합니다. 테스트에서는 스키마 자동 변경을 끕니다.
 
 ## 팀원
