@@ -16,5 +16,6 @@ public enum DesignColorCode {
 	SILVER,
 	GOLD,
 	TRANSPARENT,
-	NUDE
+	NUDE,
+	KHAKI
 }
