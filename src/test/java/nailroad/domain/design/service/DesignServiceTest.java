@@ -1,5 +1,6 @@
 package nailroad.domain.design.service;
 
+import nailroad.domain.design.code.DesignErrorCode;
 import nailroad.domain.design.dto.DesignSearchResponse;
 import nailroad.domain.design.entity.Design;
 import nailroad.domain.design.entity.Tag;
@@ -11,6 +12,7 @@ import nailroad.domain.design.repository.DesignLikeRepository;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.domain.shop.entity.Shop;
+import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 
@@ -25,6 +27,15 @@ class DesignServiceTest {
     private final TagRepository tags = mock(TagRepository.class);
     private final DesignLikeRepository likes = mock(DesignLikeRepository.class);
     private final DesignService service = new DesignService(designs, tags, likes);
+
+    @Test
+    void searchUsesDesignUnauthorizedCode() {
+        CustomException exception = assertThrows(CustomException.class,
+                () -> service.search(null, null, null, null, null, null, null, "20"));
+
+        assertEquals(DesignErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        verifyNoInteractions(designs, tags, likes);
+    }
 
     @Test
     void keywordMatchesTagNameAndPaginatesAfterFiltering() {

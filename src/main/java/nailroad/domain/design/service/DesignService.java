@@ -13,7 +13,6 @@ import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignLikeRepository;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.TagRepository;
-import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -41,14 +40,14 @@ public class DesignService {
     @Transactional(readOnly = true)
     public DesignDetailResponse getDetail(Long userId, Long designId) {
         if (userId == null) {
-            throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+            throw new CustomException(DesignErrorCode.UNAUTHORIZED);
         }
         if (designId == null || designId < 1) {
-            throw new CustomException(GlobalErrorCode.BAD_REQUEST);
+            throw new CustomException(DesignErrorCode.INVALID_DESIGN_ID);
         }
 
         Design design = designRepository.findById(designId)
-                .orElseThrow(() -> new CustomException(GlobalErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(DesignErrorCode.DESIGN_NOT_FOUND));
         List<TagName> tagNames = tagRepository.findByDesign_IdIn(List.of(designId)).stream()
                 .map(Tag::getTagName)
                 .distinct()
@@ -76,7 +75,7 @@ public class DesignService {
                                        List<String> shapeCode, List<String> colorCode, List<String> tagName,
                                        String cursor, String size) {
         if (userId == null) {
-            throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+            throw new CustomException(DesignErrorCode.UNAUTHORIZED);
         }
         int pageSize = parseSize(size);
         long scanCursor = parseCursor(cursor);

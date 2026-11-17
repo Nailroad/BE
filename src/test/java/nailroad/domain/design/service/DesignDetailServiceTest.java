@@ -1,5 +1,6 @@
 package nailroad.domain.design.service;
 
+import nailroad.domain.design.code.DesignErrorCode;
 import nailroad.domain.design.dto.DesignDetailResponse;
 import nailroad.domain.design.entity.Design;
 import nailroad.domain.design.entity.DesignLike;
@@ -12,7 +13,6 @@ import nailroad.domain.design.repository.DesignLikeRepository;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.domain.shop.entity.Shop;
-import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.Test;
 
@@ -72,8 +72,8 @@ class DesignDetailServiceTest {
         CustomException badRequest = assertThrows(CustomException.class,
                 () -> service.getDetail(3L, 0L));
 
-        assertEquals(GlobalErrorCode.UNAUTHORIZED, unauthorized.getErrorCode());
-        assertEquals(GlobalErrorCode.BAD_REQUEST, badRequest.getErrorCode());
+        assertEquals(DesignErrorCode.UNAUTHORIZED, unauthorized.getErrorCode());
+        assertEquals(DesignErrorCode.INVALID_DESIGN_ID, badRequest.getErrorCode());
         verifyNoInteractions(designs, tags, likes);
     }
 
@@ -84,7 +84,7 @@ class DesignDetailServiceTest {
         CustomException exception = assertThrows(CustomException.class,
                 () -> service.getDetail(3L, 87L));
 
-        assertEquals(GlobalErrorCode.NOT_FOUND, exception.getErrorCode());
+        assertEquals(DesignErrorCode.DESIGN_NOT_FOUND, exception.getErrorCode());
         verifyNoInteractions(tags, likes);
     }
 
