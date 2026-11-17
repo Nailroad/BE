@@ -9,6 +9,7 @@ import nailroad.domain.design.enums.DesignColorCode;
 import nailroad.domain.design.enums.DesignShapeCode;
 import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignRepository;
+import nailroad.domain.design.repository.DesignSearchRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.domain.shop.entity.Shop;
 import nailroad.global.exception.CustomException;
@@ -23,7 +24,7 @@ import static org.mockito.Mockito.*;
 class DesignDetailServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignService service = new DesignService(designs, tags);
+    private final DesignService service = new DesignService(designs, mock(DesignSearchRepository.class), tags);
 
     @Test
     void returnsDesignTags() {

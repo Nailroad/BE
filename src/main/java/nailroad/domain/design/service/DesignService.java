@@ -11,14 +11,12 @@ import nailroad.domain.design.enums.DesignColorCode;
 import nailroad.domain.design.enums.DesignShapeCode;
 import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignRepository;
+import nailroad.domain.design.repository.DesignSearchRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.global.exception.CustomException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,9 +27,8 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class DesignService {
-    private static final int SCAN_BATCH_SIZE = 200;
-
     private final DesignRepository designRepository;
+    private final DesignSearchRepository designSearchRepository;
     private final TagRepository tagRepository;
 
     @Transactional(readOnly = true)
@@ -65,76 +62,30 @@ public class DesignService {
                                        List<String> shapeCode, List<String> colorCode, List<String> tagName,
                                        String cursor, String size) {
         int pageSize = parseSize(size);
-        long scanCursor = parseCursor(cursor);
+        long searchCursor = parseCursor(cursor);
         Set<DesignCategoryCode> categories = parseFilter(categoryCode, DesignCategoryCode.class);
         Set<DesignShapeCode> shapes = parseFilter(shapeCode, DesignShapeCode.class);
         Set<DesignColorCode> colors = parseFilter(colorCode, DesignColorCode.class);
         Set<TagName> tags = parseFilter(tagName, TagName.class);
         String search = keyword == null ? "" : keyword.trim().toUpperCase(Locale.ROOT);
 
-        List<Design> matches = new ArrayList<>(pageSize + 1);
-        while (matches.size() <= pageSize) {
-            List<Design> batch = designRepository.findByIdLessThanOrderByIdDesc(
-                    scanCursor, PageRequest.of(0, SCAN_BATCH_SIZE));
-            if (batch.isEmpty()) {
-                break;
-            }
-            Map<Long, Set<TagName>> tagsByDesign = loadTags(batch, !tags.isEmpty() || !search.isEmpty());
-            for (Design design : batch) {
-                if (matches(design, tagsByDesign.getOrDefault(design.getId(), Set.of()),
-                        categories, shapes, colors, tags, search)) {
-                    matches.add(design);
-                    if (matches.size() > pageSize) {
-                        break;
-                    }
-                }
-            }
-            if (matches.size() > pageSize || batch.size() < SCAN_BATCH_SIZE) {
-                break;
-            }
-            scanCursor = batch.getLast().getId();
+        List<Long> matchingIds = designSearchRepository.findMatchingIds(
+                searchCursor, pageSize + 1, search, categories, shapes, colors, tags);
+        boolean hasNext = matchingIds.size() > pageSize;
+        List<Long> pageIds = matchingIds.subList(0, Math.min(pageSize, matchingIds.size()));
+        Map<Long, Design> designsById = new HashMap<>();
+        if (!pageIds.isEmpty()) {
+            designRepository.findByIdIn(pageIds).forEach(design -> designsById.put(design.getId(), design));
         }
-
-        boolean hasNext = matches.size() > pageSize;
-        List<Design> page = matches.subList(0, Math.min(pageSize, matches.size()));
+        List<Design> page = pageIds.stream().map(designsById::get).toList();
         List<DesignSearchResponse.Item> items = page.stream()
                 .map(design -> new DesignSearchResponse.Item(
                         design.getId(), design.getShop().getId(), design.getName(), design.getDesignImageUrl(),
                         design.getCategoryCodes(), design.getShapeCodes(), design.getColorCodes(),
                         false))
                 .toList();
-        Long nextCursor = hasNext ? page.getLast().getId() : null;
+        Long nextCursor = hasNext ? pageIds.getLast() : null;
         return new DesignSearchResponse(items, pageSize, hasNext, nextCursor);
-    }
-
-    private Map<Long, Set<TagName>> loadTags(List<Design> designs, boolean needed) {
-        if (!needed) {
-            return Map.of();
-        }
-        Collection<Long> ids = designs.stream().map(Design::getId).toList();
-        Map<Long, Set<TagName>> result = new HashMap<>();
-        for (Tag tag : tagRepository.findByDesign_IdIn(ids)) {
-            result.computeIfAbsent(tag.getDesign().getId(), ignored -> new HashSet<>()).add(tag.getTagName());
-        }
-        return result;
-    }
-
-    private boolean matches(Design design, Set<TagName> designTags,
-                            Set<DesignCategoryCode> categories, Set<DesignShapeCode> shapes,
-                            Set<DesignColorCode> colors, Set<TagName> tags, String search) {
-        if (!matchesAny(design.getCategoryCodes(), categories)
-                || !matchesAny(design.getShapeCodes(), shapes)
-                || !matchesAny(design.getColorCodes(), colors)
-                || !matchesAny(designTags, tags)) {
-            return false;
-        }
-        return search.isEmpty()
-                || (design.getName() != null && design.getName().toUpperCase(Locale.ROOT).contains(search))
-                || designTags.stream().anyMatch(tag -> tag.name().contains(search));
-    }
-
-    private <E> boolean matchesAny(Collection<E> values, Set<E> filter) {
-        return filter.isEmpty() || values != null && values.stream().anyMatch(filter::contains);
     }
 
     private <E extends Enum<E>> Set<E> parseFilter(List<String> values, Class<E> type) {
