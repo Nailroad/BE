@@ -24,7 +24,8 @@ import static org.mockito.Mockito.*;
 class DesignDetailServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignService service = new DesignService(designs, mock(DesignSearchRepository.class), tags);
+    private final DesignImageUrlService images = mock(DesignImageUrlService.class);
+    private final DesignService service = new DesignService(designs, mock(DesignSearchRepository.class), tags, images);
 
     @Test
     void returnsDesignTags() {
@@ -34,13 +35,17 @@ class DesignDetailServiceTest {
         Tag duplicate = tag(TagName.WEDDING_NAIL);
         when(designs.findById(87L)).thenReturn(Optional.of(design));
         when(tags.findByDesign_IdIn(List.of(87L))).thenReturn(List.of(wedding, soft, duplicate));
+        when(images.readUrl("designs/87.jpg")).thenReturn("https://example.com/presigned-87.jpg");
 
         DesignDetailResponse response = service.getDetail(87L);
 
         assertEquals(87L, response.designId());
         assertEquals(5L, response.shopId());
+        assertEquals("네일로드", response.shopName());
+        assertEquals("서울시 강남구", response.shopAddress());
         assertEquals("핑크 프렌치 네일", response.name());
-        assertEquals("https://example.com/designs/87.jpg", response.designImageUrl());
+        assertEquals("https://example.com/presigned-87.jpg", response.designImageUrl());
+        verify(images).readUrl("designs/87.jpg");
         assertEquals(List.of(DesignCategoryCode.FRENCH), response.categoryCodes());
         assertEquals(List.of(DesignShapeCode.OVAL), response.shapeCodes());
         assertEquals(List.of(DesignColorCode.PINK), response.colorCodes());
@@ -66,7 +71,7 @@ class DesignDetailServiceTest {
                 () -> service.getDetail(0L));
 
         assertEquals(DesignErrorCode.INVALID_DESIGN_ID, badRequest.getErrorCode());
-        verifyNoInteractions(designs, tags);
+        verifyNoInteractions(designs, tags, images);
     }
 
     @Test
@@ -77,7 +82,7 @@ class DesignDetailServiceTest {
                 () -> service.getDetail(87L));
 
         assertEquals(DesignErrorCode.DESIGN_NOT_FOUND, exception.getErrorCode());
-        verifyNoInteractions(tags);
+        verifyNoInteractions(tags, images);
     }
 
     private Design design() {
@@ -86,8 +91,10 @@ class DesignDetailServiceTest {
         when(design.getId()).thenReturn(87L);
         when(design.getShop()).thenReturn(shop);
         when(shop.getId()).thenReturn(5L);
+        when(shop.getShopName()).thenReturn("네일로드");
+        when(shop.getShopAddress()).thenReturn("서울시 강남구");
         when(design.getName()).thenReturn("핑크 프렌치 네일");
-        when(design.getDesignImageUrl()).thenReturn("https://example.com/designs/87.jpg");
+        when(design.getDesignImageUrl()).thenReturn("designs/87.jpg");
         when(design.getCategoryCodes()).thenReturn(List.of(DesignCategoryCode.FRENCH));
         when(design.getShapeCodes()).thenReturn(List.of(DesignShapeCode.OVAL));
         when(design.getColorCodes()).thenReturn(List.of(DesignColorCode.PINK));

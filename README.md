@@ -21,6 +21,10 @@ PostgreSQL 연결 정보를 환경변수로 지정한 뒤 `./gradlew bootRun`을
 | `DB_URL` | JDBC URL (예: `jdbc:postgresql://localhost:5432/nailroad`) |
 | `DB_USERNAME` | PostgreSQL 사용자 이름 |
 | `DB_PASSWORD` | PostgreSQL 비밀번호 |
+| `S3_BUCKET` | 디자인 이미지 S3 버킷 이름 |
+| `AWS_REGION` | S3 버킷 리전 (예: `ap-northeast-2`) |
+
+디자인 이미지의 `design_image_url`에는 URL 대신 S3 객체 키(예: `designs/example.jpg`)를 저장합니다. 목록과 상세 응답의 `designImageUrl`은 15분 동안 유효한 읽기용 Presigned URL입니다. 실행 환경에는 AWS 기본 자격 증명 체인으로 S3 객체 읽기 권한을 제공해야 합니다.
 
 `./gradlew test`도 위 환경변수로 PostgreSQL에 연결합니다. 테스트에서는 스키마 자동 변경을 끕니다.
 

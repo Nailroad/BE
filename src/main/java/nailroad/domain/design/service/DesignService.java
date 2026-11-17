@@ -30,6 +30,7 @@ public class DesignService {
     private final DesignRepository designRepository;
     private final DesignSearchRepository designSearchRepository;
     private final TagRepository tagRepository;
+    private final DesignImageUrlService designImageUrlService;
 
     @Transactional(readOnly = true)
     public DesignDetailResponse getDetail(Long designId) {
@@ -47,8 +48,10 @@ public class DesignService {
         return new DesignDetailResponse(
                 design.getId(),
                 design.getShop().getId(),
+                design.getShop().getShopName(),
+                design.getShop().getShopAddress(),
                 design.getName(),
-                design.getDesignImageUrl(),
+                designImageUrlService.readUrl(design.getDesignImageUrl()),
                 design.getCategoryCodes(),
                 design.getShapeCodes(),
                 design.getColorCodes(),
@@ -80,7 +83,8 @@ public class DesignService {
         List<Design> page = pageIds.stream().map(designsById::get).toList();
         List<DesignSearchResponse.Item> items = page.stream()
                 .map(design -> new DesignSearchResponse.Item(
-                        design.getId(), design.getShop().getId(), design.getName(), design.getDesignImageUrl(),
+                        design.getId(), design.getShop().getId(), design.getName(),
+                        designImageUrlService.readUrl(design.getDesignImageUrl()),
                         design.getCategoryCodes(), design.getShapeCodes(), design.getColorCodes(),
                         false))
                 .toList();

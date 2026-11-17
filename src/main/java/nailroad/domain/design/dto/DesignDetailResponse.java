@@ -9,6 +9,8 @@ import nailroad.domain.design.enums.TagName;
 public record DesignDetailResponse(
         Long designId,
         Long shopId,
+        String shopName,
+        String shopAddress,
         String name,
         String designImageUrl,
         List<DesignCategoryCode> categoryCodes,

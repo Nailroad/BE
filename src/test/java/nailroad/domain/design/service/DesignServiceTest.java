@@ -22,7 +22,8 @@ class DesignServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final DesignSearchRepository searchRepository = mock(DesignSearchRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignService service = new DesignService(designs, searchRepository, tags);
+    private final DesignImageUrlService images = mock(DesignImageUrlService.class);
+    private final DesignService service = new DesignService(designs, searchRepository, tags, images);
 
     @Test
     void searchReturnsItemsWithFalseLiked() {
@@ -30,10 +31,13 @@ class DesignServiceTest {
         when(searchRepository.findMatchingIds(Long.MAX_VALUE, 21, "", Set.of(), Set.of(), Set.of(), Set.of()))
                 .thenReturn(List.of(20L));
         when(designs.findByIdIn(List.of(20L))).thenReturn(List.of(design));
+        when(images.readUrl("designs/20.jpg")).thenReturn("https://example.com/presigned-20.jpg");
 
         DesignSearchResponse result = service.search(null, null, null, null, null, null, "20");
 
         assertEquals(1, result.items().size());
+        assertEquals("https://example.com/presigned-20.jpg", result.items().getFirst().designImageUrl());
+        verify(images).readUrl("designs/20.jpg");
         assertFalse(result.items().getFirst().isLiked());
         assertFalse(result.hasNext());
         assertNull(result.nextCursor());
@@ -78,7 +82,7 @@ class DesignServiceTest {
         DesignSearchResponse result = service.search(null, null, null, null, null, null, "20");
 
         assertTrue(result.items().isEmpty());
-        verifyNoInteractions(designs, tags);
+        verifyNoInteractions(designs, tags, images);
     }
 
     private Design design(Long id, String name, DesignColorCode color) {
@@ -88,6 +92,7 @@ class DesignServiceTest {
         when(design.getName()).thenReturn(name);
         when(design.getShop()).thenReturn(shop);
         when(shop.getId()).thenReturn(5L);
+        when(design.getDesignImageUrl()).thenReturn("designs/" + id + ".jpg");
         when(design.getCategoryCodes()).thenReturn(List.of(DesignCategoryCode.FRENCH));
         when(design.getShapeCodes()).thenReturn(List.of(DesignShapeCode.OVAL));
         when(design.getColorCodes()).thenReturn(List.of(color));
