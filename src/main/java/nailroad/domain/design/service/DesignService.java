@@ -10,7 +10,6 @@ import nailroad.domain.design.enums.DesignCategoryCode;
 import nailroad.domain.design.enums.DesignColorCode;
 import nailroad.domain.design.enums.DesignShapeCode;
 import nailroad.domain.design.enums.TagName;
-import nailroad.domain.design.repository.DesignLikeRepository;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.global.exception.CustomException;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,13 +33,9 @@ public class DesignService {
 
     private final DesignRepository designRepository;
     private final TagRepository tagRepository;
-    private final DesignLikeRepository designLikeRepository;
 
     @Transactional(readOnly = true)
-    public DesignDetailResponse getDetail(Long userId, Long designId) {
-        if (userId == null) {
-            throw new CustomException(DesignErrorCode.UNAUTHORIZED);
-        }
+    public DesignDetailResponse getDetail(Long designId) {
         if (designId == null || designId < 1) {
             throw new CustomException(DesignErrorCode.INVALID_DESIGN_ID);
         }
@@ -53,10 +47,6 @@ public class DesignService {
                 .distinct()
                 .sorted()
                 .toList();
-        boolean isLiked = !designLikeRepository
-                .findByUser_IdAndDesign_IdInAndLikedTrue(userId, List.of(designId))
-                .isEmpty();
-
         return new DesignDetailResponse(
                 design.getId(),
                 design.getShop().getId(),
@@ -66,17 +56,14 @@ public class DesignService {
                 design.getShapeCodes(),
                 design.getColorCodes(),
                 tagNames,
-                isLiked
+                false
         );
     }
 
     @Transactional(readOnly = true)
-    public DesignSearchResponse search(Long userId, String keyword, List<String> categoryCode,
+    public DesignSearchResponse search(String keyword, List<String> categoryCode,
                                        List<String> shapeCode, List<String> colorCode, List<String> tagName,
                                        String cursor, String size) {
-        if (userId == null) {
-            throw new CustomException(DesignErrorCode.UNAUTHORIZED);
-        }
         int pageSize = parseSize(size);
         long scanCursor = parseCursor(cursor);
         Set<DesignCategoryCode> categories = parseFilter(categoryCode, DesignCategoryCode.class);
@@ -110,15 +97,11 @@ public class DesignService {
 
         boolean hasNext = matches.size() > pageSize;
         List<Design> page = matches.subList(0, Math.min(pageSize, matches.size()));
-        Set<Long> likedIds = page.isEmpty() ? Set.of() :
-                designLikeRepository.findByUser_IdAndDesign_IdInAndLikedTrue(
-                        userId, page.stream().map(Design::getId).toList())
-                        .stream().map(like -> like.getDesign().getId()).collect(Collectors.toSet());
         List<DesignSearchResponse.Item> items = page.stream()
                 .map(design -> new DesignSearchResponse.Item(
                         design.getId(), design.getShop().getId(), design.getName(), design.getDesignImageUrl(),
                         design.getCategoryCodes(), design.getShapeCodes(), design.getColorCodes(),
-                        likedIds.contains(design.getId())))
+                        false))
                 .toList();
         Long nextCursor = hasNext ? page.getLast().getId() : null;
         return new DesignSearchResponse(items, pageSize, hasNext, nextCursor);

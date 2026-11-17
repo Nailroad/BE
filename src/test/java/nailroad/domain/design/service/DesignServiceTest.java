@@ -1,6 +1,5 @@
 package nailroad.domain.design.service;
 
-import nailroad.domain.design.code.DesignErrorCode;
 import nailroad.domain.design.dto.DesignSearchResponse;
 import nailroad.domain.design.entity.Design;
 import nailroad.domain.design.entity.Tag;
@@ -8,11 +7,9 @@ import nailroad.domain.design.enums.DesignCategoryCode;
 import nailroad.domain.design.enums.DesignColorCode;
 import nailroad.domain.design.enums.DesignShapeCode;
 import nailroad.domain.design.enums.TagName;
-import nailroad.domain.design.repository.DesignLikeRepository;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.TagRepository;
 import nailroad.domain.shop.entity.Shop;
-import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 
@@ -25,16 +22,19 @@ import static org.mockito.Mockito.*;
 class DesignServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignLikeRepository likes = mock(DesignLikeRepository.class);
-    private final DesignService service = new DesignService(designs, tags, likes);
+    private final DesignService service = new DesignService(designs, tags);
 
     @Test
-    void searchUsesDesignUnauthorizedCode() {
-        CustomException exception = assertThrows(CustomException.class,
-                () -> service.search(null, null, null, null, null, null, null, "20"));
+    void searchReturnsItemsWithFalseLiked() {
+        Design design = design(20L, "화이트 프렌치", DesignColorCode.WHITE);
+        when(designs.findByIdLessThanOrderByIdDesc(eq(Long.MAX_VALUE), any(Pageable.class)))
+                .thenReturn(List.of(design));
 
-        assertEquals(DesignErrorCode.UNAUTHORIZED, exception.getErrorCode());
-        verifyNoInteractions(designs, tags, likes);
+        DesignSearchResponse result = service.search(
+                null, null, null, null, null, null, "20");
+
+        assertEquals(1, result.items().size());
+        assertFalse(result.items().getFirst().isLiked());
     }
 
     @Test
@@ -48,11 +48,9 @@ class DesignServiceTest {
         when(designs.findByIdLessThanOrderByIdDesc(eq(Long.MAX_VALUE), any(Pageable.class)))
                 .thenReturn(List.of(first, second, third));
         when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(firstTag, secondTag, thirdTag));
-        when(likes.findByUser_IdAndDesign_IdInAndLikedTrue(eq(1L), anyCollection()))
-                .thenReturn(List.of());
 
         DesignSearchResponse result = service.search(
-                1L, "SPRING", null, null, List.of("PINK"), null, null, "1");
+                "SPRING", null, null, List.of("PINK"), null, null, "1");
 
         assertEquals(List.of(80L), result.items().stream().map(DesignSearchResponse.Item::designId).toList());
         assertTrue(result.hasNext());
@@ -67,11 +65,9 @@ class DesignServiceTest {
         when(designs.findByIdLessThanOrderByIdDesc(eq(Long.MAX_VALUE), any(Pageable.class)))
                 .thenReturn(List.of(design));
         when(tags.findByDesign_IdIn(anyCollection())).thenReturn(List.of(weddingTag));
-        when(likes.findByUser_IdAndDesign_IdInAndLikedTrue(eq(1L), anyCollection()))
-                .thenReturn(List.of());
 
         DesignSearchResponse result = service.search(
-                1L, "프렌치", List.of("FRENCH"), null, null,
+                "프렌치", List.of("FRENCH"), null, null,
                 List.of("WEDDING_NAIL", "PARTY_NAIL"), null, "20");
 
         assertEquals(1, result.items().size());
