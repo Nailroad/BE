@@ -30,6 +30,8 @@ class DesignServiceTest {
         Design design = design(20L, "화이트 프렌치", DesignColorCode.WHITE);
         when(searchRepository.findMatchingIds(Long.MAX_VALUE, 21, "", Set.of(), Set.of(), Set.of(), Set.of()))
                 .thenReturn(List.of(20L));
+        when(searchRepository.countMatching("", Set.of(), Set.of(), Set.of(), Set.of()))
+                .thenReturn(1L);
         when(designs.findByIdIn(List.of(20L))).thenReturn(List.of(design));
         when(images.readUrl("designs/20.jpg")).thenReturn("https://example.com/presigned-20.jpg");
 
@@ -41,6 +43,7 @@ class DesignServiceTest {
         assertFalse(result.items().getFirst().isLiked());
         assertFalse(result.hasNext());
         assertNull(result.nextCursor());
+        assertEquals(1L, result.totalCount());
     }
 
     @Test
@@ -49,6 +52,9 @@ class DesignServiceTest {
         when(searchRepository.findMatchingIds(91L, 2, "SPRING", Set.of(DesignCategoryCode.FRENCH),
                 Set.of(DesignShapeCode.OVAL), Set.of(DesignColorCode.PINK), Set.of(TagName.SPRING_WARM_NAIL)))
                 .thenReturn(List.of(80L, 70L));
+        when(searchRepository.countMatching("SPRING", Set.of(DesignCategoryCode.FRENCH),
+                Set.of(DesignShapeCode.OVAL), Set.of(DesignColorCode.PINK), Set.of(TagName.SPRING_WARM_NAIL)))
+                .thenReturn(6L);
         when(designs.findByIdIn(List.of(80L))).thenReturn(List.of(first));
 
         DesignSearchResponse result = service.search("spring", List.of("FRENCH"), List.of("OVAL"),
@@ -58,6 +64,7 @@ class DesignServiceTest {
         assertTrue(result.hasNext());
         assertEquals(80L, result.nextCursor());
         assertEquals(1, result.size());
+        assertEquals(6L, result.totalCount());
         verifyNoInteractions(tags);
     }
 
