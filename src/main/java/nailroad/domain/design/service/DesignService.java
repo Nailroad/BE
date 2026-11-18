@@ -89,7 +89,8 @@ public class DesignService {
                         false))
                 .toList();
         Long nextCursor = hasNext ? pageIds.getLast() : null;
-        return new DesignSearchResponse(items, pageSize, hasNext, nextCursor);
+        long totalCount = designSearchRepository.countMatching(search, categories, shapes, colors, tags);
+        return new DesignSearchResponse(items, pageSize, hasNext, nextCursor, totalCount);
     }
 
     private <E extends Enum<E>> Set<E> parseFilter(List<String> values, Class<E> type) {
