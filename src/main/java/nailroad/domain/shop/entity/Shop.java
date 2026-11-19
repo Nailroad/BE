@@ -32,8 +32,14 @@ public class Shop extends BaseEntity {
 	@Column(name = "shop_name")
 	private String shopName;
 
+	@Column(name = "shop_phone", length = 20)
+	private String shopPhone;
+
 	@Column(name = "shop_address")
 	private String shopAddress;
+
+	@Column(name = "detail_address")
+	private String detailAddress;
 
 	@Column(name = "longitude", precision = 10, scale = 7)
 	private BigDecimal longitude;
@@ -66,7 +72,9 @@ public class Shop extends BaseEntity {
 	public Shop(
 		User user,
 		String shopName,
+		String shopPhone,
 		String shopAddress,
+		String detailAddress,
 		BigDecimal longitude,
 		BigDecimal latitude,
 		String businessHour,
@@ -78,7 +86,9 @@ public class Shop extends BaseEntity {
 	) {
 		this.user = user;
 		this.shopName = shopName;
+		this.shopPhone = shopPhone;
 		this.shopAddress = shopAddress;
+		this.detailAddress = detailAddress;
 		this.longitude = longitude;
 		this.latitude = latitude;
 		this.businessHour = businessHour;
