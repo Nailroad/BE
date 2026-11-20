@@ -1,6 +1,7 @@
 package nailroad.domain.shop.service;
 
 import jakarta.persistence.EntityManager;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.shop.dto.request.ShopRegistrationRequest;
 import nailroad.domain.shop.dto.response.ShopRegistrationResponse;
@@ -18,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ShopService {
 
+	private static final Set<ShopApprovalStatus> DUPLICATE_REGISTRATION_STATUSES =
+		Set.of(ShopApprovalStatus.PENDING, ShopApprovalStatus.APPROVED);
+
 	private final EntityManager entityManager;
 	private final ShopRepository shopRepository;
 
@@ -27,6 +31,7 @@ public class ShopService {
 			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
 		}
 
+		checkDuplicate(userId, request);
 		User user = entityManager.getReference(User.class, userId);
 		Shop shop = shopRepository.save(Shop.builder()
 			.user(user)
@@ -38,5 +43,12 @@ public class ShopService {
 			.status(ShopStatus.PAUSED)
 			.build());
 		return new ShopRegistrationResponse(shop.getId(), shop.getApprovalStatus());
+	}
+
+	private void checkDuplicate(Long userId, ShopRegistrationRequest request) {
+		if (shopRepository.existsByUser_IdAndShopNameAndShopAddressAndApprovalStatusIn(
+			userId, request.shopName(), request.shopAddress(), DUPLICATE_REGISTRATION_STATUSES)) {
+			throw new CustomException(GlobalErrorCode.CONFLICT);
+		}
 	}
 }
