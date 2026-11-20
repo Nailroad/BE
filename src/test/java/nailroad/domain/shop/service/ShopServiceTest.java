@@ -31,7 +31,7 @@ class ShopServiceTest {
 		entityManager, shops, addresses, new TransactionTemplate(mock(PlatformTransactionManager.class)));
 	private final User user = mock(User.class);
 	private final ShopRegistrationRequest request = new ShopRegistrationRequest(
-		"민서네일", "010-0000-0000", "서울특별시 마포구 양화로 123", "2층");
+		"민서네일", "010-0000-0000", "02-123-4567", "서울특별시 마포구 양화로 123", "2층");
 
 	@BeforeEach
 	void setUp() {

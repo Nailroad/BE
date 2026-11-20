@@ -48,6 +48,7 @@ public class ShopService {
 		Shop shop = shopRepository.save(Shop.builder()
 			.user(user)
 			.shopName(request.shopName())
+			.shopOwnerPhone(request.shopOwnerPhone())
 			.shopPhone(request.shopPhone())
 			.shopAddress(request.shopAddress())
 			.detailAddress(request.detailAddress())

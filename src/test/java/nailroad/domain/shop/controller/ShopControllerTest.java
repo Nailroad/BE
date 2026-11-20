@@ -19,7 +19,7 @@ class ShopControllerTest {
 	@Test
 	void returns401WithoutAuthentication() throws Exception {
 		mockMvc.perform(post("/api/v1/shops").contentType(MediaType.APPLICATION_JSON).content("""
-			{"shopName":"민서네일","shopPhone":"010-0000-0000","shopAddress":"서울특별시 마포구 양화로 123"}
+			{"shopName":"민서네일","shop_owner_phone":"010-0000-0000","shopPhone":"02-123-4567","shopAddress":"서울특별시 마포구 양화로 123"}
 			"""))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("COMMON401"));

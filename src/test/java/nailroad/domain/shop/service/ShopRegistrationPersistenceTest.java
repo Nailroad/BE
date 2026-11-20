@@ -61,7 +61,7 @@ class ShopRegistrationPersistenceTest {
 	private AddressClient coordinateClient;
 
 	private final ShopRegistrationRequest request = new ShopRegistrationRequest(
-		"민서네일", "010-0000-0000", "서울특별시 마포구 양화로 123", "2층");
+		"민서네일", "010-0000-0000", "02-123-4567", "서울특별시 마포구 양화로 123", "2층");
 
 	@AfterEach
 	void cleanUp() {
@@ -79,6 +79,7 @@ class ShopRegistrationPersistenceTest {
 		Shop saved = shops.findById(response.shopId()).orElseThrow();
 		assertEquals(user.getId(), saved.getUser().getId());
 		assertEquals(request.shopName(), saved.getShopName());
+		assertEquals(request.shopOwnerPhone(), saved.getShopOwnerPhone());
 		assertEquals(request.shopPhone(), saved.getShopPhone());
 		assertEquals(request.shopAddress(), saved.getShopAddress());
 		assertEquals(request.detailAddress(), saved.getDetailAddress());
