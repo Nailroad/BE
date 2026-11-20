@@ -17,6 +17,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       AWS_REGION: ${AWS_REGION:?Set AWS_REGION in .env}
       S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET in .env}
+      JUSO_SEARCH_API_KEY: ${JUSO_SEARCH_API_KEY:-}
+      JUSO_COORDINATE_API_KEY: ${JUSO_COORDINATE_API_KEY:-}
       SERVER_FORWARD_HEADERS_STRATEGY: framework
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=65.0"
     healthcheck:

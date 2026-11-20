@@ -27,6 +27,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/nailroad
       DB_USERNAME: nailroad
       DB_PASSWORD: local-only
+      JUSO_SEARCH_API_KEY: ${JUSO_SEARCH_API_KEY:-}
+      JUSO_COORDINATE_API_KEY: ${JUSO_COORDINATE_API_KEY:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
       interval: 5s
