@@ -5,7 +5,9 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.shop.dto.request.ShopRegistrationRequest;
+import nailroad.domain.shop.dto.request.ShopUpdateRequest;
 import nailroad.domain.shop.dto.response.ShopRegistrationResponse;
+import nailroad.domain.shop.dto.response.ShopUpdateResponse;
 import nailroad.domain.shop.entity.Shop;
 import nailroad.domain.shop.enums.ShopApprovalStatus;
 import nailroad.domain.shop.enums.ShopStatus;
@@ -16,6 +18,7 @@ import nailroad.domain.user.entity.User;
 import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -31,13 +34,41 @@ public class ShopService {
 	private final TransactionTemplate transactionTemplate;
 
 	public ShopRegistrationResponse register(Long userId, ShopRegistrationRequest request) {
-		if (userId == null || userId < 1) {
-			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
-		}
-
+		requireUserId(userId);
 		checkDuplicate(userId, request);
 		Optional<Coordinates> coordinates = coordinateClient.lookup(request.shopAddress());
 		return transactionTemplate.execute(status -> saveRegistration(userId, request, coordinates));
+	}
+
+	@Transactional
+	public ShopUpdateResponse update(Long userId, Long shopId, ShopUpdateRequest request) {
+		requireUserId(userId);
+		Shop shop = shopRepository.findById(shopId)
+			.orElseThrow(() -> new CustomException(GlobalErrorCode.NOT_FOUND));
+		if (!userId.equals(shop.getUser().getId())) {
+			throw new CustomException(GlobalErrorCode.FORBIDDEN);
+		}
+		if (shop.getApprovalStatus() != ShopApprovalStatus.APPROVED) {
+			throw new CustomException(GlobalErrorCode.CONFLICT);
+		}
+
+		if (request.imageKeys() != null) {
+			String shopImagePrefix = "shops/" + shopId + "/";
+			if (request.imageKeys().stream().anyMatch(key -> !key.startsWith(shopImagePrefix))) {
+				throw new CustomException(GlobalErrorCode.VALIDATION_FAILED);
+			}
+		}
+
+		shop.updateBasicInfo(request.shopPhone(), request.businessHours(), request.status(),
+			request.facilities(), request.imageKeys());
+		return new ShopUpdateResponse(shop.getId(), shop.getShopPhone(), shop.getBusinessHour(),
+			shop.getStatus(), shop.getFacility(), shop.getShopImage());
+	}
+
+	private void requireUserId(Long userId) {
+		if (userId == null || userId < 1) {
+			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+		}
 	}
 
 	private ShopRegistrationResponse saveRegistration(
