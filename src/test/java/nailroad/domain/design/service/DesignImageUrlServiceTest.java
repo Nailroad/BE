@@ -1,30 +1,35 @@
 package nailroad.domain.design.service;
 
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DesignImageUrlServiceTest {
+    private final DesignImageUrlService service = new DesignImageUrlService("https://images.example.com/");
+
     @Test
-    void signsPrivateObjectKeyForBrowserGet() {
-        try (S3Presigner presigner = S3Presigner.builder()
-                .region(Region.AP_NORTHEAST_2)
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create("test-access-key", "test-secret-key")))
-                .build()) {
-            DesignImageUrlService service = new DesignImageUrlService(presigner, "test-designs");
+    void returnsCloudFrontUrlForExistingDesign() {
+        assertEquals("https://images.example.com/designs/001.jpg", service.readUrl("designs/001.jpg"));
+    }
 
-            String url = service.readUrl("designs/example.jpg");
+    @Test
+    void encodesSpecialCharactersInTheObjectKey() {
+        assertEquals("https://images.example.com/designs/23/%ED%8C%8C%EC%B8%A0%20%2B%20%23%3F%25.png",
+                service.readUrl("designs/23/파츠 + #?%.png"));
+    }
 
-            assertTrue(url.startsWith("https://test-designs.s3.ap-northeast-2.amazonaws.com/designs/example.jpg?"));
-            assertTrue(url.contains("X-Amz-Expires=900"));
-            assertTrue(url.contains("X-Amz-Signature="));
-            assertNull(service.readUrl(null));
-            assertNull(service.readUrl(" "));
-        }
+    @Test
+    void returnsNullWhenTheDesignHasNoImage() {
+        assertNull(service.readUrl(null));
+        assertNull(service.readUrl(" "));
+    }
+
+    @Test
+    void rejectsAnInvalidCloudFrontBaseUrl() {
+        assertThrows(IllegalArgumentException.class, () -> new DesignImageUrlService(""));
+        assertThrows(IllegalArgumentException.class, () -> new DesignImageUrlService("http://images.example.com"));
+        assertThrows(IllegalArgumentException.class, () -> new DesignImageUrlService("https://images.example.com/designs"));
     }
 }

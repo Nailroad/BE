@@ -51,6 +51,7 @@ jobs:
           DB_PASSWORD: ci-only
           AWS_REGION: ${{ vars.AWS_REGION }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
+          CLOUDFRONT_BASE_URL: https://images.example.com
         run: |
           : "${AWS_REGION:?Set GitHub Actions variable AWS_REGION}"
           : "${S3_BUCKET:?Set GitHub Actions variable S3_BUCKET}"

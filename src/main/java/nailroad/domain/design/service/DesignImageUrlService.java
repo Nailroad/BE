@@ -2,36 +2,34 @@ package nailroad.domain.design.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import org.springframework.web.util.UriUtils;
 
-import java.time.Duration;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Service
 public class DesignImageUrlService {
-    private static final Duration URL_LIFETIME = Duration.ofMinutes(15);
+    private final String baseUrl;
 
-    private final S3Presigner presigner;
-    private final String bucket;
-
-    public DesignImageUrlService(S3Presigner presigner, @Value("${app.s3.bucket}") String bucket) {
-        this.presigner = presigner;
-        this.bucket = bucket;
+    public DesignImageUrlService(@Value("${app.cloudfront.base-url}") String baseUrl) {
+        URI uri = URI.create(baseUrl.strip());
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null
+                || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
+                || !(uri.getPath().isEmpty() || uri.getPath().equals("/"))) {
+            throw new IllegalArgumentException("CLOUDFRONT_BASE_URL must be an HTTPS origin without a path");
+        }
+        this.baseUrl = uri.getScheme() + "://" + uri.getRawAuthority();
     }
 
     public String readUrl(String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        GetObjectRequest objectRequest = GetObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-        GetObjectPresignRequest request = GetObjectPresignRequest.builder()
-                .signatureDuration(URL_LIFETIME)
-                .getObjectRequest(objectRequest)
-                .build();
-        return presigner.presignGetObject(request).url().toString();
+        String encodedKey = Arrays.stream(key.split("/", -1))
+                .map(segment -> UriUtils.encode(segment, StandardCharsets.UTF_8))
+                .collect(Collectors.joining("/"));
+        return baseUrl + "/" + encodedKey;
     }
 }

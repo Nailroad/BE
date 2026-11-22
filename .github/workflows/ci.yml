@@ -32,6 +32,7 @@ jobs:
       DB_PASSWORD: ci-only
       AWS_REGION: ${{ vars.AWS_REGION }}
       S3_BUCKET: ${{ vars.S3_BUCKET }}
+      CLOUDFRONT_BASE_URL: https://images.example.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

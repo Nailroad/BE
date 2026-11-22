@@ -27,6 +27,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/nailroad
       DB_USERNAME: nailroad
       DB_PASSWORD: local-only
+      AWS_REGION: ${AWS_REGION:?Set AWS_REGION in .env}
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET in .env}
+      CLOUDFRONT_BASE_URL: ${CLOUDFRONT_BASE_URL:?Set CLOUDFRONT_BASE_URL in .env}
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
       interval: 5s
