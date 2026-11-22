@@ -13,10 +13,10 @@ public record ShopRegistrationRequest(
 	@JsonProperty("shop_owner_phone")
 	@Schema(description = "사장님 개인 휴대폰 번호")
 	@NotBlank @Pattern(regexp = "010-?[0-9]{4}-?[0-9]{4}") String shopOwnerPhone,
-	@Schema(description = "고객에게 공개할 매장 전화번호")
+	@Schema(description = "고객에게 공개할 매장 전화번호", example = "0507-1234-5678")
 	@NotBlank @Pattern(regexp = ShopRegistrationRequest.SHOP_PHONE_PATTERN) String shopPhone,
 	@NotBlank @Size(max = 255) String shopAddress,
 	@Size(max = 255) String detailAddress
 ) {
-	static final String SHOP_PHONE_PATTERN = "(?:02|0[3-6][0-9])-?[0-9]{3,4}-?[0-9]{4}";
+	static final String SHOP_PHONE_PATTERN = "(?:02|0[3-6][0-9]|050[0-9])-?[0-9]{3,4}-?[0-9]{4}";
 }
