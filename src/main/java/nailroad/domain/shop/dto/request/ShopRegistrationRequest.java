@@ -18,5 +18,6 @@ public record ShopRegistrationRequest(
 	@NotBlank @Size(max = 255) String shopAddress,
 	@Size(max = 255) String detailAddress
 ) {
-	static final String SHOP_PHONE_PATTERN = "(?:02|0[3-6][0-9]|050[0-9])-?[0-9]{3,4}-?[0-9]{4}";
+	static final String SHOP_PHONE_PATTERN =
+		"(?:(?:02|0[3-6][0-9]|050[0-9])-?[0-9]{3,4}|070-?[0-9]{4}|14|1[568][0-9]{2})-?[0-9]{4}";
 }
