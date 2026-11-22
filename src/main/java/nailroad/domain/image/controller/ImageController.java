@@ -2,15 +2,14 @@ package nailroad.domain.image.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
+import nailroad.domain.image.code.ImageErrorCode;
 import nailroad.domain.image.dto.ImageUploadUrlRequest;
 import nailroad.domain.image.dto.ImageUploadUrlResponse;
+import nailroad.domain.image.enums.ImagePurpose;
 import nailroad.domain.image.service.ImageUploadUrlService;
 import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
@@ -31,19 +30,9 @@ public class ImageController {
 
     @PostMapping(path = "/presigned-url", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "이미지 업로드 URL 발급",
-            description = "로그인한 사용자가 업로드 URL을 발급받습니다. "
-                    + "응답의 uploadUrl에 발급 요청과 같은 Content-Type 헤더를 사용해 이미지 파일을 PUT으로 전송합니다.")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "발급 성공",
-                    useReturnTypeSchema = true),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 또는 지원하지 않는 이미지 용도·타입",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서명 URL 발급 중 서버 오류",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
-    })
+            description = "요청한 파일 순서대로 업로드 URL을 발급합니다. 각 URL에 해당 파일을 PUT으로 전송합니다.")
     public ApiResponse<ImageUploadUrlResponse> issueUploadUrl(
+            // TODO: 소셜 로그인 연동 후 @AuthenticationPrincipal CustomUserDetails principal로 교체
             @Parameter(hidden = true) Principal principal,
             @Valid @RequestBody ImageUploadUrlRequest request
     ) {
@@ -51,6 +40,15 @@ public class ImageController {
             throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
         }
 
-        return ApiResponse.onSuccess("이미지 업로드 URL을 발급했습니다.", imageUploadUrlService.issue(request));
+        return ApiResponse.onSuccess("이미지 업로드 URL을 발급했습니다.", imageUploadUrlService.issue(
+                parsePurpose(request.purpose()), request.files()));
+    }
+
+    private ImagePurpose parsePurpose(String purpose) {
+        try {
+            return ImagePurpose.valueOf(purpose);
+        } catch (IllegalArgumentException exception) {
+            throw new CustomException(ImageErrorCode.INVALID_PURPOSE);
+        }
     }
 }
