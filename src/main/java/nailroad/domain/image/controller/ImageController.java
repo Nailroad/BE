@@ -30,7 +30,10 @@ public class ImageController {
 
     @PostMapping(path = "/presigned-url", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "이미지 업로드 URL 발급",
-            description = "요청한 파일 순서대로 업로드 URL을 발급합니다. 각 URL에 해당 파일을 PUT으로 전송합니다.")
+            description = """
+                    요청한 파일 순서대로 업로드 URL을 발급합니다. 각 URL에 해당 파일을 PUT으로 전송합니다.
+                    SHOP은 승인된 샵의 소유자가 shopId를 전달해야 합니다.
+                    """)
     public ApiResponse<ImageUploadUrlResponse> issueUploadUrl(
             // TODO: 소셜 로그인 연동 후 @AuthenticationPrincipal CustomUserDetails principal로 교체
             @Parameter(hidden = true) Principal principal,
@@ -40,8 +43,13 @@ public class ImageController {
             throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
         }
 
-        return ApiResponse.onSuccess("이미지 업로드 URL을 발급했습니다.", imageUploadUrlService.issue(
-                parsePurpose(request.purpose()), request.files()));
+        ImagePurpose purpose = parsePurpose(request.purpose());
+        if (purpose == ImagePurpose.SHOP) {
+            // TODO: JWT 연동 후 issueForShop(principal.getUserId(), request.shopId(), request.files()) 호출
+            throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+        }
+        return ApiResponse.onSuccess("이미지 업로드 URL을 발급했습니다.",
+                imageUploadUrlService.issue(purpose, request.files()));
     }
 
     private ImagePurpose parsePurpose(String purpose) {

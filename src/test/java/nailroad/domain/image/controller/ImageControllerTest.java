@@ -31,7 +31,7 @@ class ImageControllerTest {
             new FileMetadata("image/jpeg", 2048L),
             new FileMetadata("image/heic", 4096L)
     );
-    private static final ImageUploadUrlRequest REQUEST = new ImageUploadUrlRequest("SHOP", FILES);
+    private static final ImageUploadUrlRequest REQUEST = new ImageUploadUrlRequest("DESIGN", null, FILES);
 
     private final ImageUploadUrlService service = mock(ImageUploadUrlService.class);
     private final ImageController controller = new ImageController(service);
@@ -40,16 +40,16 @@ class ImageControllerTest {
     @Test
     void passesPurposeAndAllFilesToService() {
         ImageUploadUrlResponse issued = new ImageUploadUrlResponse(List.of(
-                new UploadItem("https://test.example/photo.jpg", "shops/photo.jpg", 300),
-                new UploadItem("https://test.example/photo.heic", "shops/photo.heic", 300)
+                new UploadItem("https://test.example/photo.jpg", "designs/photo.jpg", 300),
+                new UploadItem("https://test.example/photo.heic", "designs/photo.heic", 300)
         ));
-        when(service.issue(ImagePurpose.SHOP, FILES)).thenReturn(issued);
+        when(service.issue(ImagePurpose.DESIGN, FILES)).thenReturn(issued);
 
         ApiResponse<ImageUploadUrlResponse> response = controller.issueUploadUrl(USER, REQUEST);
 
         assertEquals("COMMON200", response.getCode());
         assertSame(issued, response.getResult());
-        verify(service).issue(ImagePurpose.SHOP, FILES);
+        verify(service).issue(ImagePurpose.DESIGN, FILES);
     }
 
     // 인증된 사용자가 없으면 URL 발급을 거절하는지 확인합니다.
@@ -66,7 +66,7 @@ class ImageControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"PROFILE", "0"})
     void rejectsUnsupportedPurpose(String purpose) {
-        ImageUploadUrlRequest request = new ImageUploadUrlRequest(purpose, FILES);
+        ImageUploadUrlRequest request = new ImageUploadUrlRequest(purpose, null, FILES);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> controller.issueUploadUrl(USER, request));
