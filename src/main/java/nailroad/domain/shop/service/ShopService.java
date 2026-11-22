@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.dto.request.ShopRegistrationRequest;
 import nailroad.domain.shop.dto.request.ShopUpdateRequest;
 import nailroad.domain.shop.dto.response.ShopRegistrationResponse;
@@ -44,18 +45,18 @@ public class ShopService {
 	public ShopUpdateResponse update(Long userId, Long shopId, ShopUpdateRequest request) {
 		requireUserId(userId);
 		Shop shop = shopRepository.findById(shopId)
-			.orElseThrow(() -> new CustomException(GlobalErrorCode.NOT_FOUND));
+			.orElseThrow(() -> new CustomException(ShopErrorCode.NOT_FOUND));
 		if (!userId.equals(shop.getUser().getId())) {
-			throw new CustomException(GlobalErrorCode.FORBIDDEN);
+			throw new CustomException(ShopErrorCode.NOT_OWNER);
 		}
 		if (shop.getApprovalStatus() != ShopApprovalStatus.APPROVED) {
-			throw new CustomException(GlobalErrorCode.CONFLICT);
+			throw new CustomException(ShopErrorCode.NOT_APPROVED);
 		}
 
 		if (request.imageKeys() != null) {
 			String shopImagePrefix = "shops/" + shopId + "/";
 			if (request.imageKeys().stream().anyMatch(key -> !key.startsWith(shopImagePrefix))) {
-				throw new CustomException(GlobalErrorCode.VALIDATION_FAILED);
+				throw new CustomException(ShopErrorCode.INVALID_IMAGE_KEY);
 			}
 		}
 
@@ -94,7 +95,7 @@ public class ShopService {
 	private void checkDuplicate(Long userId, ShopRegistrationRequest request) {
 		if (shopRepository.existsByUser_IdAndShopNameAndShopAddressAndApprovalStatusIn(
 			userId, request.shopName(), request.shopAddress(), DUPLICATE_REGISTRATION_STATUSES)) {
-			throw new CustomException(GlobalErrorCode.CONFLICT);
+			throw new CustomException(ShopErrorCode.DUPLICATE_REGISTRATION);
 		}
 	}
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.Set;
+import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.dto.request.ShopRegistrationRequest;
 import nailroad.domain.shop.entity.Shop;
 import nailroad.domain.shop.enums.ShopApprovalStatus;
@@ -11,7 +12,6 @@ import nailroad.domain.shop.integration.AddressClient;
 import nailroad.domain.shop.integration.AddressClient.Coordinates;
 import nailroad.domain.shop.repository.ShopRepository;
 import nailroad.domain.user.entity.User;
-import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,7 +77,7 @@ class ShopServiceTest {
 
 		CustomException exception = assertThrows(CustomException.class, () -> service.register(7L, request));
 
-		assertEquals(GlobalErrorCode.CONFLICT, exception.getErrorCode());
+		assertEquals(ShopErrorCode.DUPLICATE_REGISTRATION, exception.getErrorCode());
 		verify(shops, never()).save(any());
 		verifyNoInteractions(addresses);
 	}
