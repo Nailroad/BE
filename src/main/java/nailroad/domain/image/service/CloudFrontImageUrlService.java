@@ -1,4 +1,4 @@
-package nailroad.domain.design.service;
+package nailroad.domain.image.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Service
-public class DesignImageUrlService {
+public class CloudFrontImageUrlService {
     private final String baseUrl;
 
-    public DesignImageUrlService(@Value("${app.cloudfront.base-url}") String baseUrl) {
+    public CloudFrontImageUrlService(@Value("${app.cloudfront.base-url}") String baseUrl) {
         URI uri = URI.create(baseUrl.strip());
         if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null
                 || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null

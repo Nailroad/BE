@@ -13,6 +13,7 @@ import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.DesignSearchRepository;
 import nailroad.domain.design.repository.TagRepository;
+import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.global.exception.CustomException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,7 @@ public class DesignService {
     private final DesignRepository designRepository;
     private final DesignSearchRepository designSearchRepository;
     private final TagRepository tagRepository;
-    private final DesignImageUrlService designImageUrlService;
+    private final CloudFrontImageUrlService imageUrlService;
 
     @Transactional(readOnly = true)
     public DesignDetailResponse getDetail(Long designId) {
@@ -51,7 +52,7 @@ public class DesignService {
                 design.getShop().getShopName(),
                 design.getShop().getShopAddress(),
                 design.getName(),
-                designImageUrlService.readUrl(design.getDesignImageUrl()),
+                imageUrlService.readUrl(design.getDesignImageUrl()),
                 design.getCategoryCodes(),
                 design.getShapeCodes(),
                 design.getColorCodes(),
@@ -84,7 +85,7 @@ public class DesignService {
         List<DesignSearchResponse.Item> items = page.stream()
                 .map(design -> new DesignSearchResponse.Item(
                         design.getId(), design.getShop().getId(), design.getName(),
-                        designImageUrlService.readUrl(design.getDesignImageUrl()),
+                        imageUrlService.readUrl(design.getDesignImageUrl()),
                         design.getCategoryCodes(), design.getShapeCodes(), design.getColorCodes(),
                         false))
                 .toList();
