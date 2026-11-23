@@ -16,10 +16,10 @@ class SecurityConfigCsrfTest {
 
 	@Test
 	void skipsBearerAuthenticatedEndpoints() {
-		assertFalse(matches("POST", "/auth/phone/send"));
-		assertFalse(matches("POST", "/auth/onboarding"));
+		assertFalse(matches("POST", "/api/v1/onboarding/phone/send"));
+		assertFalse(matches("POST", "/api/v1/onboarding"));
 		assertFalse(matches("POST", "/api/v1/designs"));
-		assertFalse(matches("GET", "/auth/reissue"));
+		assertFalse(matches("GET", "/api/v1/auth/reissue"));
 	}
 
 	private boolean matches(String method, String uri) {

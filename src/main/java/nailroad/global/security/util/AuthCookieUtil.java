@@ -33,7 +33,7 @@ public class AuthCookieUtil {
 			.httpOnly(true)
 			.secure(secure)
 			.sameSite(sameSite)
-			.path("/auth")
+				.path("/api/v1/auth")
 			.maxAge(maxAge)
 			.build();
 	}

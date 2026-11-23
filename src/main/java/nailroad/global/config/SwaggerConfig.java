@@ -20,7 +20,7 @@ public class SwaggerConfig {
                         .title("Nailroad API")
                         .description("네일로드 API")
                         .version("v1.0"))
-                // 우측 상단 Authorize 버튼에 /auth/reissue로 받은 accessToken을 넣으면 모든 요청에 Bearer 헤더가 붙는다.
+                // 우측 상단 Authorize 버튼에 /api/v1/auth/reissue로 받은 accessToken을 넣으면 모든 요청에 Bearer 헤더가 붙는다.
                 .components(new Components().addSecuritySchemes(BEARER, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")

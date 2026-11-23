@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -35,7 +35,7 @@ public class AuthController {
 	private final AuthCookieUtil authCookieUtil;
 
 	@GetMapping("/login-complete")
-	@Operation(summary = "카카오 로그인 완료 확인", description = "로컬 개발용 기본 리다이렉트 대상입니다. 프론트는 /auth/reissue로 액세스 토큰을 받습니다.")
+	@Operation(summary = "카카오 로그인 완료 확인", description = "로컬 개발용 기본 리다이렉트 대상입니다. 프론트는 /api/v1/auth/reissue로 액세스 토큰을 받습니다.")
 	public ApiResponse<LoginResponse> loginComplete(
 			@Parameter(hidden = true) @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken) {
 		return ApiResponse.onSuccess("카카오 로그인이 완료되었습니다.", authService.loginComplete(refreshToken));
@@ -67,7 +67,7 @@ public class AuthController {
 
 	@GetMapping("/csrf")
 	@Operation(summary = "CSRF 토큰 조회",
-		description = "XSRF-TOKEN 쿠키를 발급하고 같은 값을 돌려줍니다. /auth/reissue, /auth/logout 호출 시 X-XSRF-TOKEN 헤더에 넣습니다.")
+		description = "XSRF-TOKEN 쿠키를 발급하고 같은 값을 돌려줍니다. /api/v1/auth/reissue, /api/v1/auth/logout 호출 시 X-XSRF-TOKEN 헤더에 넣습니다.")
 	public ApiResponse<String> csrf(HttpServletRequest request) {
 		// 마스킹된 요청 속성 값이 아니라 쿠키에 저장되는 원본 값을 준다. spa() 설정은 헤더에서 원본 값을 기대한다.
 		DeferredCsrfToken csrfToken = (DeferredCsrfToken) request.getAttribute(DeferredCsrfToken.class.getName());

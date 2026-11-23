@@ -50,13 +50,13 @@ class CsrfFlowTest {
 
 	@Test
 	void csrfEndpointReturnsSameValueAsCookieAndReissueAcceptsIt() throws Exception {
-		MvcResult csrf = mockMvc.perform(get("/auth/csrf")).andExpect(status().isOk()).andReturn();
+		MvcResult csrf = mockMvc.perform(get("/api/v1/auth/csrf")).andExpect(status().isOk()).andReturn();
 		Cookie xsrfCookie = csrf.getResponse().getCookie("XSRF-TOKEN");
 		assertNotNull(xsrfCookie);
 		String body = csrf.getResponse().getContentAsString();
 		assertEquals(true, body.contains("\"result\":\"" + xsrfCookie.getValue() + "\""));
 
-		mockMvc.perform(post("/auth/reissue")
+		mockMvc.perform(post("/api/v1/auth/reissue")
 				.cookie(xsrfCookie, new Cookie(AuthCookieUtil.REFRESH_COOKIE, "refresh"))
 				.header("X-XSRF-TOKEN", xsrfCookie.getValue()))
 			.andExpect(status().isOk())
@@ -65,9 +65,9 @@ class CsrfFlowTest {
 
 	@Test
 	void reissueWithoutCsrfHeaderIsForbidden() throws Exception {
-		Cookie xsrfCookie = mockMvc.perform(get("/auth/csrf")).andReturn().getResponse().getCookie("XSRF-TOKEN");
+		Cookie xsrfCookie = mockMvc.perform(get("/api/v1/auth/csrf")).andReturn().getResponse().getCookie("XSRF-TOKEN");
 
-		mockMvc.perform(post("/auth/reissue")
+		mockMvc.perform(post("/api/v1/auth/reissue")
 				.cookie(xsrfCookie, new Cookie(AuthCookieUtil.REFRESH_COOKIE, "refresh")))
 			.andExpect(status().isForbidden());
 	}

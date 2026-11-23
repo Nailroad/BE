@@ -28,9 +28,9 @@ class SecurityConfigOAuth2LoginTest {
 
 	@Test
 	void doesNotTreatOtherAuthPathsAsLogin() {
-		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "/auth/me")));
-		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "/auth/csrf")));
-		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "/auth/login-complete")));
+		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "api/v1/auth/me")));
+		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "api/v1/auth/csrf")));
+		assertNull(resolver.resolve(new MockHttpServletRequest("GET", "api/v1/auth/login-complete")));
 	}
 
 	private static ClientRegistration kakao() {

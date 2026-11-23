@@ -32,8 +32,8 @@ public class SecurityConfig {
 	 * Bearer 토큰 API는 공격자가 헤더를 만들 수 없어 CSRF 대상이 아니므로, 쿠키로 동작하는 엔드포인트만 보호한다.
 	 */
 	static final RequestMatcher CSRF_PROTECTED = new OrRequestMatcher(
-		PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/auth/reissue"),
-		PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/auth/logout"));
+		PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/reissue"),
+		PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/logout"));
 
 	private final KakaoLoginSuccessHandler kakaoLoginSuccessHandler;
 	private final JwtAuthFilter jwtAuthFilter;
@@ -56,9 +56,10 @@ public class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-			.authorizeHttpRequests(authorize -> authorize
-				.requestMatchers("/auth/me", "/auth/phone/**",
-					"/auth/onboarding").authenticated()
+				.authorizeHttpRequests(authorize -> authorize
+						.requestMatchers("/api/v1/auth/me", "/api/v1/auth/phone/**",
+								"/api/v1/auth/onboarding").authenticated()
+						.requestMatchers("/api/v1/auth/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/v1/designs/**").permitAll()
 				.requestMatchers("/api/v1/**").hasRole("USER")
 				.anyRequest().permitAll())
