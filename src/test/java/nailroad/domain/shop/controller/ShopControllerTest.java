@@ -1,9 +1,11 @@
 package nailroad.domain.shop.controller;
 
+import nailroad.domain.shop.service.ShopQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +16,9 @@ class ShopControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@MockitoBean
+	private ShopQueryService shopQueryService;
 
 	// 인증 정보가 없는 등록 요청에 공통 인증 오류를 반환하는지 확인한다.
 	@Test
