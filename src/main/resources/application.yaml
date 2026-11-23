@@ -32,7 +32,6 @@ app:
     cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
     success-redirect: ${AUTH_SUCCESS_REDIRECT:/api/v1/auth/login-complete}
     failure-redirect: ${AUTH_FAILURE_REDIRECT:/api/v1/auth/login-failed}
-    frontend-origin: ${AUTH_FRONTEND_ORIGIN:}
     phone:
       mode: ${PHONE_VERIFICATION_MODE:disabled}
   jwt:

@@ -17,10 +17,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
+/** SecurityConfig에서 직접 생성해 Security 필터 체인에만 넣는다. (빈으로 등록하지 않음) */
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 

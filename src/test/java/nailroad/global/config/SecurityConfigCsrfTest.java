@@ -10,8 +10,8 @@ class SecurityConfigCsrfTest {
 
 	@Test
 	void protectsOnlyCookieAuthenticatedEndpoints() {
-		assertTrue(matches("POST", "/auth/reissue"));
-		assertTrue(matches("POST", "/auth/logout"));
+		assertTrue(matches("POST", "/api/v1/auth/reissue"));
+		assertTrue(matches("POST", "/api/v1/auth/logout"));
 	}
 
 	@Test
