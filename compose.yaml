@@ -27,6 +27,14 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/nailroad
       DB_USERNAME: nailroad
       DB_PASSWORD: local-only
+      KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:?Set KAKAO_REST_API_KEY in .env}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?Set KAKAO_CLIENT_SECRET in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://localhost:8080/auth/kakao/callback}
+      AUTH_FRONTEND_ORIGIN: ${AUTH_FRONTEND_ORIGIN:-}
+      AUTH_SUCCESS_REDIRECT: ${AUTH_SUCCESS_REDIRECT:-/auth/login-complete}
+      AUTH_FAILURE_REDIRECT: ${AUTH_FAILURE_REDIRECT:-/auth/login-failed}
+      PHONE_VERIFICATION_MODE: ${PHONE_VERIFICATION_MODE:-disabled}
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health"]
       interval: 5s
