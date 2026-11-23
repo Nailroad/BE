@@ -1,9 +1,11 @@
 package nailroad.domain.shop.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
 public record ShopQueryRequest(
 	String keyword,
+	@Schema(description = "같은 조회 조건에서 이전 응답의 nextCursor에 담긴 마지막 샵 ID")
 	Long cursor,
 	Integer size,
 	BigDecimal south,

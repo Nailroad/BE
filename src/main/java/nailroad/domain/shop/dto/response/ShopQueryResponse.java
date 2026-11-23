@@ -15,7 +15,12 @@ public final class ShopQueryResponse {
 	}
 
 	@Schema(name = "ShopListResponse")
-	public record ListResponse(List<Item> items, int size, boolean hasNext, Long nextCursor) {
+	public record ListResponse(
+		List<Item> items,
+		int size,
+		boolean hasNext,
+		@Schema(description = "다음 페이지 요청의 cursor에 전달할 마지막 샵 ID") Long nextCursor
+	) {
 
 		public record Item(
 			Long shopId,

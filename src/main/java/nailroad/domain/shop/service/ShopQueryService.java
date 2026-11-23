@@ -77,7 +77,8 @@ public class ShopQueryService {
 
 	private Slice<ListRow> findPage(ShopQueryRequest request, Sort sort, PageRequest page) {
 		String namePattern = namePattern(request.keyword());
-		long maxShopId = request.cursor() == null ? Long.MAX_VALUE : request.cursor() - 1;
+		long cursor = Objects.requireNonNullElse(request.cursor(), 0L);
+		long maxShopId = cursor == 0 ? Long.MAX_VALUE : cursor - 1;
 		if (sort == Sort.LATEST && !request.hasMapBounds()) {
 			return shopRepository.findPublicShops(maxShopId, namePattern, page);
 		}
@@ -88,8 +89,8 @@ public class ShopQueryService {
 			return shopRepository.findLatestPublicMapShops(maxShopId, namePattern,
 				request.south(), request.north(), request.west(), request.east(), page);
 		}
-		return shopRepository.findPublicMapShops(namePattern, Objects.requireNonNullElse(request.cursor(), 0L),
-			request.south(), request.north(), request.west(), request.east(), sort.name(), page);
+		return shopRepository.findPublicMapShops(namePattern, sort.name(),
+			request.south(), request.north(), request.west(), request.east(), cursor, page);
 	}
 
 	private Map<Long, Summary> findPageReviewSummaries(Slice<ListRow> shops, Sort sort) {

@@ -61,30 +61,35 @@ public interface ShopRepository extends JpaRepository<Shop, Long> {
 			FROM candidates c JOIN shop_review r ON r.shop_id = c.shop_id
 			WHERE :sort IN ('RATING', 'REVIEW_COUNT')
 			GROUP BY r.shop_id
-		), ranked AS (
-			SELECT c.shop_id, a.average_rating, COALESCE(a.review_count, 0) AS review_count, ROW_NUMBER() OVER (
+		), scored AS (
+			SELECT c.shop_id, a.average_rating, COALESCE(a.review_count, 0) AS review_count,
 				-- 구면 거리의 코사인 값이 클수록 지도 중심에 가깝습니다.
-				ORDER BY CASE WHEN :sort = 'DISTANCE' THEN
+				CASE :sort WHEN 'DISTANCE' THEN
 					SIN(RADIANS(c.latitude)) * SIN(RADIANS((:south + :north) / 2.0))
 					+ COS(RADIANS(c.latitude)) * COS(RADIANS((:south + :north) / 2.0))
 					  * COS(RADIANS(c.longitude - (:west + :east) / 2.0))
-				END DESC,
-				CASE WHEN :sort = 'RATING' THEN a.average_rating END DESC NULLS LAST,
-				CASE WHEN :sort = 'REVIEW_COUNT' THEN COALESCE(a.review_count, 0) END DESC,
-				c.shop_id DESC
-			) AS list_position
+				WHEN 'RATING' THEN a.average_rating
+				END AS sort_score
 			FROM candidates c LEFT JOIN review_stats a ON a.shop_id = c.shop_id
 		)
 		SELECT
 		""" + LIST_COLUMNS + """
-			r.average_rating AS "averageRating", r.review_count AS "reviewCount"
-		FROM ranked r JOIN shop s ON s.shop_id = r.shop_id
-		WHERE :cursor = 0 OR r.list_position > (SELECT list_position FROM ranked WHERE shop_id = :cursor)
-		ORDER BY r.list_position
+			p.average_rating AS "averageRating", p.review_count AS "reviewCount"
+		FROM scored p JOIN shop s ON s.shop_id = p.shop_id
+		LEFT JOIN scored anchor ON anchor.shop_id = :cursorShopId
+		WHERE :cursorShopId = 0
+		   OR (anchor.shop_id IS NOT NULL AND CASE WHEN :sort = 'REVIEW_COUNT'
+				THEN (p.review_count, p.shop_id) < (anchor.review_count, anchor.shop_id)
+				ELSE (p.sort_score, p.shop_id) < (anchor.sort_score, anchor.shop_id)
+					OR (p.sort_score IS NULL AND (anchor.sort_score IS NOT NULL OR p.shop_id < anchor.shop_id))
+			END)
+		ORDER BY p.sort_score DESC NULLS LAST,
+			CASE WHEN :sort = 'REVIEW_COUNT' THEN p.review_count END DESC, p.shop_id DESC
 		""", nativeQuery = true)
-	Slice<ListRow> findPublicMapShops(@Param("namePattern") String namePattern, @Param("cursor") long cursor,
+	Slice<ListRow> findPublicMapShops(@Param("namePattern") String namePattern, @Param("sort") String sort,
 		@Param("south") BigDecimal south, @Param("north") BigDecimal north,
-		@Param("west") BigDecimal west, @Param("east") BigDecimal east, @Param("sort") String sort, Pageable pageable);
+		@Param("west") BigDecimal west, @Param("east") BigDecimal east,
+		@Param("cursorShopId") long cursorShopId, Pageable pageable);
 
 	@Query(value = "SELECT s.* " + PUBLIC_SHOPS + "AND s.shop_id = :shopId", nativeQuery = true)
 	Optional<Shop> findPublicShop(@Param("shopId") Long shopId);
