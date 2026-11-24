@@ -11,6 +11,7 @@ import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.DesignSearchRepository;
 import nailroad.domain.design.repository.TagRepository;
+import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.domain.shop.entity.Shop;
 import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.*;
 class DesignDetailServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignImageUrlService images = mock(DesignImageUrlService.class);
+    private final CloudFrontImageUrlService images = mock(CloudFrontImageUrlService.class);
     private final DesignService service = new DesignService(designs, mock(DesignSearchRepository.class), tags, images);
 
     @Test
@@ -35,7 +36,7 @@ class DesignDetailServiceTest {
         Tag duplicate = tag(TagName.WEDDING_NAIL);
         when(designs.findById(87L)).thenReturn(Optional.of(design));
         when(tags.findByDesign_IdIn(List.of(87L))).thenReturn(List.of(wedding, soft, duplicate));
-        when(images.readUrl("designs/87.jpg")).thenReturn("https://example.com/presigned-87.jpg");
+        when(images.readUrl("designs/87.jpg")).thenReturn("https://images.example.com/designs/87.jpg");
 
         DesignDetailResponse response = service.getDetail(87L);
 
@@ -44,7 +45,7 @@ class DesignDetailServiceTest {
         assertEquals("네일로드", response.shopName());
         assertEquals("서울시 강남구", response.shopAddress());
         assertEquals("핑크 프렌치 네일", response.name());
-        assertEquals("https://example.com/presigned-87.jpg", response.designImageUrl());
+        assertEquals("https://images.example.com/designs/87.jpg", response.designImageUrl());
         assertEquals(900, response.imageWidth());
         assertEquals(1200, response.imageHeight());
         verify(images).readUrl("designs/87.jpg");

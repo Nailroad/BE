@@ -39,6 +39,8 @@ app:
   s3:
     bucket: ${S3_BUCKET}
     region: ${AWS_REGION}
+  cloudfront:
+    base-url: ${CLOUDFRONT_BASE_URL}
 
 springdoc:
   swagger-ui:
