@@ -9,6 +9,7 @@ import nailroad.domain.design.enums.TagName;
 import nailroad.domain.design.repository.DesignRepository;
 import nailroad.domain.design.repository.DesignSearchRepository;
 import nailroad.domain.design.repository.TagRepository;
+import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.domain.shop.entity.Shop;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ class DesignServiceTest {
     private final DesignRepository designs = mock(DesignRepository.class);
     private final DesignSearchRepository searchRepository = mock(DesignSearchRepository.class);
     private final TagRepository tags = mock(TagRepository.class);
-    private final DesignImageUrlService images = mock(DesignImageUrlService.class);
+    private final CloudFrontImageUrlService images = mock(CloudFrontImageUrlService.class);
     private final DesignService service = new DesignService(designs, searchRepository, tags, images);
 
     @Test
@@ -33,12 +34,14 @@ class DesignServiceTest {
         when(searchRepository.countMatching("", Set.of(), Set.of(), Set.of(), Set.of()))
                 .thenReturn(1L);
         when(designs.findByIdIn(List.of(20L))).thenReturn(List.of(design));
-        when(images.readUrl("designs/20.jpg")).thenReturn("https://example.com/presigned-20.jpg");
+        when(images.readUrl("designs/20.jpg")).thenReturn("https://images.example.com/designs/20.jpg");
 
         DesignSearchResponse result = service.search(null, null, null, null, null, null, "20");
 
         assertEquals(1, result.items().size());
-        assertEquals("https://example.com/presigned-20.jpg", result.items().getFirst().designImageUrl());
+        assertEquals("https://images.example.com/designs/20.jpg", result.items().getFirst().designImageUrl());
+        assertEquals(1200, result.items().getFirst().imageWidth());
+        assertEquals(800, result.items().getFirst().imageHeight());
         verify(images).readUrl("designs/20.jpg");
         assertFalse(result.items().getFirst().isLiked());
         assertFalse(result.hasNext());
@@ -100,6 +103,8 @@ class DesignServiceTest {
         when(design.getShop()).thenReturn(shop);
         when(shop.getId()).thenReturn(5L);
         when(design.getDesignImageUrl()).thenReturn("designs/" + id + ".jpg");
+        when(design.getImageWidth()).thenReturn(1200);
+        when(design.getImageHeight()).thenReturn(800);
         when(design.getCategoryCodes()).thenReturn(List.of(DesignCategoryCode.FRENCH));
         when(design.getShapeCodes()).thenReturn(List.of(DesignShapeCode.OVAL));
         when(design.getColorCodes()).thenReturn(List.of(color));

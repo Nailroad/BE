@@ -1,24 +1,25 @@
 package nailroad.domain.shop.controller;
 
 import nailroad.domain.shop.service.ShopQueryService;
+import nailroad.domain.shop.service.ShopService;
+import nailroad.global.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ShopController.class)
 class ShopControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ShopQueryService shopQueryService;
+	private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+			new ShopController(mock(ShopService.class), mock(ShopQueryService.class)))
+		.setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+		.setControllerAdvice(new GlobalExceptionHandler())
+		.build();
 
 	// 인증 정보가 없는 등록 요청에 공통 인증 오류를 반환하는지 확인한다.
 	@Test

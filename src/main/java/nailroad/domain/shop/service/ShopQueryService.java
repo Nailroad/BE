@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.design.service.DesignImageUrlService;
+import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.dto.request.ShopQueryRequest;
 import nailroad.domain.shop.dto.request.ShopQueryRequest.Sort;
@@ -37,7 +37,7 @@ public class ShopQueryService {
 	private final ShopRepository shopRepository;
 	private final ShopPriceRepository shopPriceRepository;
 	private final ShopReviewRepository shopReviewRepository;
-	private final DesignImageUrlService imageUrlService;
+	private final CloudFrontImageUrlService imageUrlService;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public ListResponse getList(ShopQueryRequest request) {
