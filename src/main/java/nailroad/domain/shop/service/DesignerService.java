@@ -12,6 +12,7 @@ import nailroad.domain.shop.entity.Shop;
 import nailroad.domain.shop.repository.DesignerRepository;
 import nailroad.domain.shop.repository.ShopRepository;
 import nailroad.global.exception.CustomException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +45,18 @@ public class DesignerService {
 		designer.updateProfile(request.name(), imageUrlService.readUrl(request.profileImageKey()),
 			request.description(), request.specialties());
 		return toResponse(designer);
+	}
+
+	@Transactional
+	public void delete(Long userId, Long shopId, Long designerId) {
+		findOwnedShop(userId, shopId);
+		try {
+			if (designerRepository.deleteForShop(designerId, shopId) == 0) {
+				throw new CustomException(DesignerErrorCode.NOT_FOUND);
+			}
+		} catch (DataIntegrityViolationException exception) {
+			throw new CustomException(DesignerErrorCode.IN_USE);
+		}
 	}
 
 	private Shop findOwnedShop(Long userId, Long shopId) {

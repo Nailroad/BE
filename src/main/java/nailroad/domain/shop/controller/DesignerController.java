@@ -15,6 +15,7 @@ import nailroad.global.exception.CustomException;
 import nailroad.global.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -57,5 +58,20 @@ public class DesignerController {
 		}
 		return ApiResponse.onSuccess("디자이너 정보를 수정했습니다.",
 			designerService.update(user.getId(), shopId, designerId, request));
+	}
+
+	@DeleteMapping("/{designerId}")
+	@Operation(summary = "디자이너 삭제",
+		description = "샵 소유자가 본인 샵의 디자이너를 삭제합니다. 연결된 견적 일정이 있으면 삭제할 수 없습니다.")
+	public ApiResponse<Void> delete(
+		@Parameter(hidden = true) @AuthenticationPrincipal User user,
+		@PathVariable Long shopId,
+		@PathVariable Long designerId
+	) {
+		if (user == null) {
+			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+		}
+		designerService.delete(user.getId(), shopId, designerId);
+		return ApiResponse.onSuccess("디자이너를 삭제했습니다.");
 	}
 }
