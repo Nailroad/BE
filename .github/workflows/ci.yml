@@ -33,6 +33,9 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       S3_BUCKET: ${{ vars.S3_BUCKET }}
       CLOUDFRONT_BASE_URL: https://images.example.com
+      KAKAO_REST_API_KEY: ci-kakao-key
+      KAKAO_CLIENT_SECRET: ci-kakao-secret
+      JWT_SECRET: ci-only-jwt-secret-32-bytes-minimum
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

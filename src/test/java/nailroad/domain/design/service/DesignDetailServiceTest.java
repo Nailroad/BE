@@ -46,6 +46,8 @@ class DesignDetailServiceTest {
         assertEquals("서울시 강남구", response.shopAddress());
         assertEquals("핑크 프렌치 네일", response.name());
         assertEquals("https://images.example.com/designs/87.jpg", response.designImageUrl());
+        assertEquals(900, response.imageWidth());
+        assertEquals(1200, response.imageHeight());
         verify(images).readUrl("designs/87.jpg");
         assertEquals(List.of(DesignCategoryCode.FRENCH), response.categoryCodes());
         assertEquals(List.of(DesignShapeCode.OVAL), response.shapeCodes());
@@ -96,6 +98,8 @@ class DesignDetailServiceTest {
         when(shop.getShopAddress()).thenReturn("서울시 강남구");
         when(design.getName()).thenReturn("핑크 프렌치 네일");
         when(design.getDesignImageUrl()).thenReturn("designs/87.jpg");
+        when(design.getImageWidth()).thenReturn(900);
+        when(design.getImageHeight()).thenReturn(1200);
         when(design.getCategoryCodes()).thenReturn(List.of(DesignCategoryCode.FRENCH));
         when(design.getShapeCodes()).thenReturn(List.of(DesignShapeCode.OVAL));
         when(design.getColorCodes()).thenReturn(List.of(DesignColorCode.PINK));
