@@ -1,5 +1,6 @@
 package nailroad.domain.design.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import nailroad.domain.design.enums.DesignCategoryCode;
 import nailroad.domain.design.enums.DesignColorCode;
@@ -13,6 +14,8 @@ public record DesignDetailResponse(
         String shopAddress,
         String name,
         String designImageUrl,
+        @JsonProperty("image_width") Integer imageWidth,
+        @JsonProperty("image_height") Integer imageHeight,
         List<DesignCategoryCode> categoryCodes,
         List<DesignShapeCode> shapeCodes,
         List<DesignColorCode> colorCodes,

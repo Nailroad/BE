@@ -45,6 +45,12 @@ public class Design {
 	@Column(name = "design_image_url")
 	private String designImageUrl;
 
+	@Column(name = "image_width")
+	private Integer imageWidth;
+
+	@Column(name = "image_height")
+	private Integer imageHeight;
+
 	@Builder
 	public Design(
 		Shop shop,
@@ -52,7 +58,9 @@ public class Design {
 		List<DesignCategoryCode> categoryCodes,
 		List<DesignShapeCode> shapeCodes,
 		List<DesignColorCode> colorCodes,
-		String designImageUrl
+		String designImageUrl,
+		Integer imageWidth,
+		Integer imageHeight
 	) {
 		this.shop = shop;
 		this.name = name;
@@ -60,5 +68,7 @@ public class Design {
 		this.shapeCodes = shapeCodes;
 		this.colorCodes = colorCodes;
 		this.designImageUrl = designImageUrl;
+		this.imageWidth = imageWidth;
+		this.imageHeight = imageHeight;
 	}
 }
