@@ -10,6 +10,7 @@ import nailroad.domain.image.dto.ImageUploadUrlRequest.FileMetadata;
 import nailroad.domain.image.dto.ImageUploadUrlResponse.UploadItem;
 import nailroad.domain.image.enums.ImagePurpose;
 import nailroad.domain.shop.enums.ShopApprovalStatus;
+import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,7 @@ class ImageUploadUrlServiceTest {
     private static final long SHOP_ID = 17L;
 
     private final EntityManager entityManager = mock(EntityManager.class);
+    private final Tuple shop = mock(Tuple.class);
     private final S3Presigner presigner = spy(S3Presigner.builder()
             .region(Region.AP_NORTHEAST_2)
             .credentialsProvider(StaticCredentialsProvider.create(
@@ -57,7 +59,6 @@ class ImageUploadUrlServiceTest {
     @BeforeEach
     void setUpApprovedShop() {
         TypedQuery<Tuple> query = mock();
-        Tuple shop = mock(Tuple.class);
         when(entityManager.createQuery(anyString(), eq(Tuple.class))).thenReturn(query);
         when(query.setParameter("shopId", SHOP_ID)).thenReturn(query);
         when(query.getSingleResultOrNull()).thenReturn(shop);
@@ -68,6 +69,31 @@ class ImageUploadUrlServiceTest {
     @AfterEach
     void closePresigner() {
         presigner.close();
+    }
+
+    // 다른 사용자가 소유한 샵의 업로드 URL을 발급하려 하면 거절하는지 확인합니다.
+    @Test
+    void rejectsUsersWhoDoNotOwnTheShop() {
+        List<FileMetadata> files = List.of(new FileMetadata("image/jpeg", 1024L));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> service.issueForShop(USER_ID + 1, SHOP_ID, files));
+
+        assertEquals(GlobalErrorCode.FORBIDDEN, exception.getErrorCode());
+        verifyNoInteractions(presigner);
+    }
+
+    // 승인 대기 중인 샵에는 업로드 URL을 발급하지 않는지 확인합니다.
+    @Test
+    void rejectsUnapprovedShops() {
+        when(shop.get("approvalStatus", ShopApprovalStatus.class)).thenReturn(ShopApprovalStatus.PENDING);
+        List<FileMetadata> files = List.of(new FileMetadata("image/jpeg", 1024L));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> service.issueForShop(USER_ID, SHOP_ID, files));
+
+        assertEquals(GlobalErrorCode.CONFLICT, exception.getErrorCode());
+        verifyNoInteractions(presigner);
     }
 
     // 지원하는 형식별로 객체 키와 만료 시간이 맞고 파일 타입과 크기가 서명에 포함되는지 확인합니다.
