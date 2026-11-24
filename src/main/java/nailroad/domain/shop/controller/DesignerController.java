@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.shop.dto.request.DesignerRegistrationRequest;
+import nailroad.domain.shop.dto.request.DesignerUpdateRequest;
 import nailroad.domain.shop.dto.response.DesignerResponse;
 import nailroad.domain.shop.service.DesignerService;
 import nailroad.domain.user.entity.User;
@@ -41,5 +42,20 @@ public class DesignerController {
 			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
 		}
 		return ApiResponse.onCreated(designerService.register(user.getId(), shopId, request));
+	}
+
+	@PostMapping("/{designerId}")
+	@Operation(summary = "디자이너 정보 수정", description = "샵 소유자가 본인 샵 디자이너의 프로필에서 값을 전달한 항목을 수정합니다.")
+	public ApiResponse<DesignerResponse> update(
+		@Parameter(hidden = true) @AuthenticationPrincipal User user,
+		@PathVariable Long shopId,
+		@PathVariable Long designerId,
+		@Valid @RequestBody DesignerUpdateRequest request
+	) {
+		if (user == null) {
+			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+		}
+		return ApiResponse.onSuccess("디자이너 정보를 수정했습니다.",
+			designerService.update(user.getId(), shopId, designerId, request));
 	}
 }

@@ -5,6 +5,7 @@ import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.domain.shop.code.DesignerErrorCode;
 import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.dto.request.DesignerRegistrationRequest;
+import nailroad.domain.shop.dto.request.DesignerUpdateRequest;
 import nailroad.domain.shop.dto.response.DesignerResponse;
 import nailroad.domain.shop.entity.Designer;
 import nailroad.domain.shop.entity.Shop;
@@ -24,12 +25,7 @@ public class DesignerService {
 
 	@Transactional
 	public DesignerResponse register(Long userId, Long shopId, DesignerRegistrationRequest request) {
-		Shop shop = shopRepository.findById(shopId)
-			.orElseThrow(() -> new CustomException(ShopErrorCode.NOT_FOUND));
-		if (!shop.getUser().getId().equals(userId)) {
-			throw new CustomException(DesignerErrorCode.NOT_SHOP_OWNER);
-		}
-
+		Shop shop = findOwnedShop(userId, shopId);
 		Designer designer = designerRepository.save(Designer.builder()
 			.shop(shop)
 			.name(request.name())
@@ -37,7 +33,29 @@ public class DesignerService {
 			.description(request.description())
 			.specialties(request.specialties())
 			.build());
+		return toResponse(designer);
+	}
 
+	@Transactional
+	public DesignerResponse update(Long userId, Long shopId, Long designerId, DesignerUpdateRequest request) {
+		findOwnedShop(userId, shopId);
+		Designer designer = designerRepository.findByIdAndShop_Id(designerId, shopId)
+			.orElseThrow(() -> new CustomException(DesignerErrorCode.NOT_FOUND));
+		designer.updateProfile(request.name(), imageUrlService.readUrl(request.profileImageKey()),
+			request.description(), request.specialties());
+		return toResponse(designer);
+	}
+
+	private Shop findOwnedShop(Long userId, Long shopId) {
+		Shop shop = shopRepository.findById(shopId)
+			.orElseThrow(() -> new CustomException(ShopErrorCode.NOT_FOUND));
+		if (!shop.getUser().getId().equals(userId)) {
+			throw new CustomException(DesignerErrorCode.NOT_SHOP_OWNER);
+		}
+		return shop;
+	}
+
+	private DesignerResponse toResponse(Designer designer) {
 		return new DesignerResponse(designer.getId(), designer.getName(), designer.getProfileImageUrl(),
 			designer.getDescription(), designer.getSpecialties());
 	}
