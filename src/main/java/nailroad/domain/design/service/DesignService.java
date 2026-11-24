@@ -52,6 +52,8 @@ public class DesignService {
                 design.getShop().getShopAddress(),
                 design.getName(),
                 designImageUrlService.readUrl(design.getDesignImageUrl()),
+                design.getImageWidth(),
+                design.getImageHeight(),
                 design.getCategoryCodes(),
                 design.getShapeCodes(),
                 design.getColorCodes(),
@@ -85,6 +87,7 @@ public class DesignService {
                 .map(design -> new DesignSearchResponse.Item(
                         design.getId(), design.getShop().getId(), design.getName(),
                         designImageUrlService.readUrl(design.getDesignImageUrl()),
+                        design.getImageWidth(), design.getImageHeight(),
                         design.getCategoryCodes(), design.getShapeCodes(), design.getColorCodes(),
                         false))
                 .toList();

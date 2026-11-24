@@ -51,6 +51,9 @@ jobs:
           DB_PASSWORD: ci-only
           AWS_REGION: ${{ vars.AWS_REGION }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
+          KAKAO_REST_API_KEY: ci-kakao-key
+          KAKAO_CLIENT_SECRET: ci-kakao-secret
+          JWT_SECRET: ci-only-jwt-secret-32-bytes-minimum
         run: |
           : "${AWS_REGION:?Set GitHub Actions variable AWS_REGION}"
           : "${S3_BUCKET:?Set GitHub Actions variable S3_BUCKET}"

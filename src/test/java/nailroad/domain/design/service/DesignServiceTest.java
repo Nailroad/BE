@@ -39,6 +39,8 @@ class DesignServiceTest {
 
         assertEquals(1, result.items().size());
         assertEquals("https://example.com/presigned-20.jpg", result.items().getFirst().designImageUrl());
+        assertEquals(1200, result.items().getFirst().imageWidth());
+        assertEquals(800, result.items().getFirst().imageHeight());
         verify(images).readUrl("designs/20.jpg");
         assertFalse(result.items().getFirst().isLiked());
         assertFalse(result.hasNext());
@@ -100,6 +102,8 @@ class DesignServiceTest {
         when(design.getShop()).thenReturn(shop);
         when(shop.getId()).thenReturn(5L);
         when(design.getDesignImageUrl()).thenReturn("designs/" + id + ".jpg");
+        when(design.getImageWidth()).thenReturn(1200);
+        when(design.getImageHeight()).thenReturn(800);
         when(design.getCategoryCodes()).thenReturn(List.of(DesignCategoryCode.FRENCH));
         when(design.getShapeCodes()).thenReturn(List.of(DesignShapeCode.OVAL));
         when(design.getColorCodes()).thenReturn(List.of(color));

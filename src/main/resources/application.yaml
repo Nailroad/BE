@@ -1,6 +1,23 @@
 spring:
   application:
     name: nailroad
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_REST_API_KEY}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/auth/kakao/callback}
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -10,9 +27,23 @@ spring:
       ddl-auto: update
     open-in-view: false
 app:
+  auth:
+    cookie-secure: ${AUTH_COOKIE_SECURE:false}
+    cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    success-redirect: ${AUTH_SUCCESS_REDIRECT:/api/v1/auth/login-complete}
+    failure-redirect: ${AUTH_FAILURE_REDIRECT:/api/v1/auth/login-failed}
+    phone:
+      mode: ${PHONE_VERIFICATION_MODE:disabled}
+  jwt:
+    secret: ${JWT_SECRET}
   s3:
     bucket: ${S3_BUCKET}
     region: ${AWS_REGION}
+
+springdoc:
+  swagger-ui:
+    csrf:
+      enabled: true
 
 management:
   endpoints:
