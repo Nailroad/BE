@@ -1,4 +1,4 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -8,12 +8,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.user.code.AuthErrorCode;
-import nailroad.domain.user.entity.RefreshToken;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.entity.RefreshToken;
+import nailroad.domain.auth.exception.AuthException;
+import nailroad.domain.auth.repository.RefreshTokenRepository;
 import nailroad.domain.user.entity.User;
-import nailroad.domain.user.exception.AuthException;
-import nailroad.domain.user.repository.RefreshTokenRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,7 @@ public class RefreshTokenService {
 
 	@Transactional
 	public RotatedToken rotate(String oldValue) {
-		RefreshToken stored = findValid(oldValue);
+		RefreshToken stored = requireValid(repository.findByTokenHashForUpdate(requireTokenHash(oldValue)));
 		String nextValue = randomToken();
 		stored.rotate(hash(nextValue), Instant.now().plus(REFRESH_TOKEN_TTL));
 		return new RotatedToken(stored.getUser(), nextValue);
@@ -50,24 +51,20 @@ public class RefreshTokenService {
 
 	@Transactional(readOnly = true)
 	public User currentUser(String value) {
+		return requireValid(repository.findByTokenHash(requireTokenHash(value))).getUser();
+	}
+
+	/** 빈 값이면 거절하고, DB에 저장된 형식(해시)으로 바꾼다. */
+	private String requireTokenHash(String value) {
 		if (value == null || value.isBlank()) {
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
-		RefreshToken stored = repository.findByTokenHash(hash(value))
-			.orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
-		return requireValid(stored).getUser();
+		return hash(value);
 	}
 
-	private RefreshToken findValid(String value) {
-		if (value == null || value.isBlank()) {
-			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
-		}
-		RefreshToken stored = repository.findByTokenHashForUpdate(hash(value))
-			.orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
-		return requireValid(stored);
-	}
-
-	private RefreshToken requireValid(RefreshToken stored) {
+	/** 조회 결과의 존재·만료·탈퇴 여부를 한곳에서 검사한다. */
+	private RefreshToken requireValid(Optional<RefreshToken> found) {
+		RefreshToken stored = found.orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 		if (!stored.getExpiresAt().isAfter(Instant.now()) || stored.getUser().getDeletedAt() != null) {
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}

@@ -1,8 +1,8 @@
-package nailroad.domain.user.dto;
+package nailroad.domain.auth.dto;
 
 import java.util.Map;
-import nailroad.domain.user.code.AuthErrorCode;
-import nailroad.domain.user.exception.AuthException;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.exception.AuthException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 public record KakaoDTO(String providerUserId, String name, String email) {

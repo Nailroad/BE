@@ -1,10 +1,10 @@
 package nailroad.global.config;
 
 import jakarta.servlet.Filter;
+import nailroad.domain.auth.service.JwtService;
 import nailroad.domain.design.controller.DesignController;
 import nailroad.domain.design.service.DesignService;
 import nailroad.domain.user.repository.UserRepository;
-import nailroad.domain.user.service.JwtService;
 import nailroad.global.security.handler.CustomAccessDenied;
 import nailroad.global.security.handler.CustomEntryPoint;
 import nailroad.global.security.handler.KakaoLoginFailureHandler;

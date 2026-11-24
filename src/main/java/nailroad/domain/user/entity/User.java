@@ -92,6 +92,11 @@ public class User extends BaseEntity {
 	}
 
 	/** 회원가입 마지막 단계에서 유형·전화번호를 한 번에 확정한다. 이후에는 변경할 수 없다. */
+	/** 응답(onboardingComplete)과 권한(ROLE_ONBOARDING) 판단에 같은 기준을 쓴다. */
+	public boolean isOnboardingComplete() {
+		return onboardingCompletedAt != null && accountType != null;
+	}
+
 	public void completeOnboarding(AccountType accountType, String phone, LocalDateTime completedAt) {
 		if (accountType == null || onboardingCompletedAt != null) {
 			throw new IllegalStateException("Onboarding cannot be completed");

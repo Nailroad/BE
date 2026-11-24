@@ -1,4 +1,4 @@
-package nailroad.domain.user.controller;
+package nailroad.domain.auth.controller;
 
 import static nailroad.global.security.util.AuthCookieUtil.REFRESH_COOKIE;
 
@@ -7,15 +7,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.user.dto.LoginResponse;
-import nailroad.domain.user.dto.TokenResponse;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.dto.LoginResponse;
+import nailroad.domain.auth.dto.TokenResponse;
+import nailroad.domain.auth.service.AuthService.ReissueResult;
+import nailroad.domain.auth.service.AuthService;
 import nailroad.domain.user.entity.User;
-import nailroad.domain.user.service.AuthService;
-import nailroad.domain.user.service.AuthService.ReissueResult;
 import nailroad.global.response.ApiResponse;
 import nailroad.global.security.util.AuthCookieUtil;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.web.csrf.DeferredCsrfToken;
@@ -44,9 +44,10 @@ public class AuthController {
 	@GetMapping("/login-failed")
 	@Operation(summary = "카카오 로그인 실패 확인", description = "로컬 개발용 기본 실패 리다이렉트 대상입니다. 운영에서는 AUTH_FAILURE_REDIRECT로 프론트 주소를 지정합니다.")
 	public ResponseEntity<ApiResponse<Void>> loginFailed(@RequestParam(required = false) String error) {
-		String code = error != null && error.matches("[A-Z0-9_]{1,64}") ? error : "AUTH_KAKAO_LOGIN401";
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-			.body(ApiResponse.onFailure(code, "카카오 로그인을 완료하지 못했습니다.", null));
+		AuthErrorCode failure = AuthErrorCode.KAKAO_LOGIN_FAILED;
+		String code = error != null && error.matches("[A-Z0-9_]{1,64}") ? error : failure.getCode();
+		return ResponseEntity.status(failure.getStatus())
+			.body(ApiResponse.onFailure(code, failure.getMessage(), null));
 	}
 
 	@PostMapping("/reissue")

@@ -1,4 +1,4 @@
-package nailroad.domain.user.entity;
+package nailroad.domain.auth.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,6 +13,7 @@ import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import nailroad.domain.user.entity.User;
 
 @Getter
 @Entity

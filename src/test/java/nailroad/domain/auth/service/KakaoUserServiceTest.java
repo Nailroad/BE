@@ -1,4 +1,4 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import nailroad.domain.user.entity.User;
-import nailroad.domain.user.enums.AuthProvider;
 import nailroad.domain.user.enums.AccountType;
+import nailroad.domain.user.enums.AuthProvider;
 import nailroad.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;

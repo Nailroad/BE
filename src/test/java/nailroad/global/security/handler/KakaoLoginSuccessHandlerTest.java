@@ -9,12 +9,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
-import nailroad.domain.user.code.AuthErrorCode;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.exception.AuthException;
+import nailroad.domain.auth.service.KakaoUserService;
+import nailroad.domain.auth.service.RefreshTokenService;
 import nailroad.domain.user.entity.User;
 import nailroad.domain.user.enums.AuthProvider;
-import nailroad.domain.user.exception.AuthException;
-import nailroad.domain.user.service.KakaoUserService;
-import nailroad.domain.user.service.RefreshTokenService;
 import nailroad.global.security.util.AuthCookieUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;

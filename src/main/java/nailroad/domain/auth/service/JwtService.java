@@ -1,4 +1,4 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

@@ -1,7 +1,7 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.user.dto.KakaoDTO;
+import nailroad.domain.auth.dto.KakaoDTO;
 import nailroad.domain.user.entity.User;
 import nailroad.domain.user.enums.AuthProvider;
 import nailroad.domain.user.repository.UserRepository;

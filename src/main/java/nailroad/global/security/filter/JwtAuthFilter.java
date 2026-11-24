@@ -7,11 +7,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.user.code.AuthErrorCode;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.service.JwtService;
 import nailroad.domain.user.entity.User;
 import nailroad.domain.user.enums.AccountType;
 import nailroad.domain.user.repository.UserRepository;
-import nailroad.domain.user.service.JwtService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -33,16 +33,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			try {
 				Long userId = Long.valueOf(jwtService.decode(token).getSubject());
-				boolean found = userRepository.findById(userId)
+				userRepository.findById(userId)
 					.filter(user -> user.getDeletedAt() == null)
-					.map(user -> {
-						authenticate(user);
-						return true;
-					})
-					.orElse(false);
-				if (!found) {
-					request.setAttribute("authErrorCode", AuthErrorCode.USER_NOT_FOUND);
-				}
+					.ifPresentOrElse(
+						this::authenticate,
+						() -> request.setAttribute("authErrorCode", AuthErrorCode.USER_NOT_FOUND));
 			} catch (JwtException | NumberFormatException ignored) {
 				SecurityContextHolder.clearContext();
 				request.setAttribute("authErrorCode", AuthErrorCode.INVALID_ACCESS_TOKEN);
@@ -60,7 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 	private void authenticate(User user) {
 		List<SimpleGrantedAuthority> authorities;
-		if (user.getOnboardingCompletedAt() == null || user.getAccountType() == null) {
+		if (!user.isOnboardingComplete()) {
 			authorities = List.of(new SimpleGrantedAuthority("ROLE_ONBOARDING"));
 		} else {
 			String accountRole = user.getAccountType() == AccountType.SHOP_OWNER

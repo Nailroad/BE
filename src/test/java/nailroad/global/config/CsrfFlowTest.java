@@ -12,10 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.Cookie;
-import nailroad.domain.user.controller.AuthController;
-import nailroad.domain.user.dto.TokenResponse;
-import nailroad.domain.user.service.AuthService;
-import nailroad.domain.user.service.AuthService.ReissueResult;
+import nailroad.domain.auth.controller.AuthController;
+import nailroad.domain.auth.dto.TokenResponse;
+import nailroad.domain.auth.service.AuthService.ReissueResult;
+import nailroad.domain.auth.service.AuthService;
 import nailroad.global.security.util.AuthCookieUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

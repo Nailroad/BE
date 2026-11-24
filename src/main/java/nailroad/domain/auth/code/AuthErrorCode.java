@@ -1,4 +1,4 @@
-package nailroad.domain.user.code;
+package nailroad.domain.auth.code;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

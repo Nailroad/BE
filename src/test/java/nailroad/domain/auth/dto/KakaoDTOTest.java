@@ -1,4 +1,4 @@
-package nailroad.domain.user.dto;
+package nailroad.domain.auth.dto;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.Map;
-import nailroad.domain.user.exception.AuthException;
+import nailroad.domain.auth.exception.AuthException;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 

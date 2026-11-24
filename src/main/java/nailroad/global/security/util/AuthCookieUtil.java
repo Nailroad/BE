@@ -1,7 +1,7 @@
 package nailroad.global.security.util;
 
 import java.time.Duration;
-import nailroad.domain.user.service.RefreshTokenService;
+import nailroad.domain.auth.service.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;

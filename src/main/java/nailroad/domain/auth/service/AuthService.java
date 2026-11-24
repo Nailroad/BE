@@ -1,10 +1,10 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import lombok.RequiredArgsConstructor;
-import nailroad.domain.user.dto.LoginResponse;
-import nailroad.domain.user.dto.TokenResponse;
+import nailroad.domain.auth.dto.LoginResponse;
+import nailroad.domain.auth.dto.TokenResponse;
+import nailroad.domain.auth.service.RefreshTokenService.RotatedToken;
 import nailroad.domain.user.entity.User;
-import nailroad.domain.user.service.RefreshTokenService.RotatedToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -7,11 +7,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import nailroad.domain.user.code.AuthErrorCode;
+import nailroad.domain.auth.code.AuthErrorCode;
+import nailroad.domain.auth.service.JwtService;
 import nailroad.domain.user.entity.User;
 import nailroad.domain.user.enums.AuthProvider;
 import nailroad.domain.user.repository.UserRepository;
-import nailroad.domain.user.service.JwtService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;

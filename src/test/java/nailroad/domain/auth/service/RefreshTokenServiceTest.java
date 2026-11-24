@@ -1,4 +1,4 @@
-package nailroad.domain.user.service;
+package nailroad.domain.auth.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -8,11 +8,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import nailroad.domain.user.entity.RefreshToken;
+import nailroad.domain.auth.entity.RefreshToken;
+import nailroad.domain.auth.exception.AuthException;
+import nailroad.domain.auth.repository.RefreshTokenRepository;
 import nailroad.domain.user.entity.User;
 import nailroad.domain.user.enums.AuthProvider;
-import nailroad.domain.user.exception.AuthException;
-import nailroad.domain.user.repository.RefreshTokenRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
