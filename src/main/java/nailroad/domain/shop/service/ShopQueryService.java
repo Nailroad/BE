@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.image.service.CloudFrontImageUrlService;
@@ -13,6 +14,7 @@ import nailroad.domain.shop.dto.request.ShopQueryRequest.Sort;
 import nailroad.domain.shop.dto.response.ShopQueryResponse.DetailResponse;
 import nailroad.domain.shop.dto.response.ShopQueryResponse.ListResponse;
 import nailroad.domain.shop.entity.Shop;
+import nailroad.domain.shop.repository.ShopLikeRepository;
 import nailroad.domain.shop.repository.ShopPriceRepository;
 import nailroad.domain.shop.repository.ShopRepository;
 import nailroad.domain.shop.repository.ShopRepository.ListRow;
@@ -37,26 +39,28 @@ public class ShopQueryService {
 	private final ShopRepository shopRepository;
 	private final ShopPriceRepository shopPriceRepository;
 	private final ShopReviewRepository shopReviewRepository;
+	private final ShopLikeRepository shopLikeRepository;
 	private final CloudFrontImageUrlService imageUrlService;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-	public ListResponse getList(ShopQueryRequest request) {
+	public ListResponse getList(Long userId, ShopQueryRequest request) {
 		int size = Objects.requireNonNullElse(request.size(), DEFAULT_PAGE_SIZE);
 		if (size < 1 || size > MAX_PAGE_SIZE || (request.cursor() != null && request.cursor() < 1)) {
 			throw new CustomException(GlobalErrorCode.BAD_REQUEST);
 		}
 		Sort sort = Objects.requireNonNullElse(request.sort(), request.hasMapBounds() ? Sort.DISTANCE : Sort.LATEST);
 		Slice<ListRow> shops = findPage(request, sort, PageRequest.ofSize(size));
-		Map<Long, Summary> reviewsByShop = findPageReviewSummaries(shops, sort);
-		// TODO: JWT 연동 후 목록과 상세에 로그인 사용자의 샵 찜 여부를 반영합니다.
+		List<Long> shopIds = shops.stream().map(ListRow::getShopId).toList();
+		Map<Long, Summary> reviewsByShop = findPageReviewSummaries(shopIds, sort);
+		Set<Long> likedShopIds = findLikedShopIds(userId, shopIds);
 		List<ListResponse.Item> items = shops.stream()
-			.map(shop -> toListItem(shop, reviewsByShop.get(shop.getShopId())))
+			.map(shop -> toListItem(shop, reviewsByShop.get(shop.getShopId()), likedShopIds.contains(shop.getShopId())))
 			.toList();
 		Long nextCursor = shops.hasNext() ? items.getLast().shopId() : null;
 		return new ListResponse(items, size, shops.hasNext(), nextCursor);
 	}
 
-	public DetailResponse getDetail(Long shopId) {
+	public DetailResponse getDetail(Long userId, Long shopId) {
 		if (shopId < 1) {
 			throw new CustomException(GlobalErrorCode.BAD_REQUEST);
 		}
@@ -68,11 +72,12 @@ public class ShopQueryService {
 			.toList();
 		Summary reviewSummary = shopReviewRepository.summarizeByShopIds(List.of(shopId)).stream()
 			.findFirst().orElse(null);
+		boolean isLiked = findLikedShopIds(userId, List.of(shopId)).contains(shopId);
 		return new DetailResponse(shop.getId(), shop.getShopName(), shop.getShopPhone(), shop.getShopAddress(),
 			shop.getDetailAddress(), shop.getLatitude(), shop.getLongitude(), shop.getLocation(), shop.getStatus(),
 			shop.getBusinessHour(), shop.getFacility(), readImageUrls(shop.getShopImage()), prices,
 			reviewSummary == null ? null : reviewSummary.getAverageRating(),
-			reviewSummary == null ? 0 : reviewSummary.getReviewCount(), false);
+			reviewSummary == null ? 0 : reviewSummary.getReviewCount(), isLiked);
 	}
 
 	private Slice<ListRow> findPage(ShopQueryRequest request, Sort sort, PageRequest page) {
@@ -93,20 +98,26 @@ public class ShopQueryService {
 			request.south(), request.north(), request.west(), request.east(), cursor, page);
 	}
 
-	private Map<Long, Summary> findPageReviewSummaries(Slice<ListRow> shops, Sort sort) {
-		if (shops.isEmpty() || sort == Sort.RATING || sort == Sort.REVIEW_COUNT) {
+	private Map<Long, Summary> findPageReviewSummaries(List<Long> shopIds, Sort sort) {
+		if (shopIds.isEmpty() || sort == Sort.RATING || sort == Sort.REVIEW_COUNT) {
 			return Map.of();
 		}
-		List<Long> shopIds = shops.stream().map(ListRow::getShopId).toList();
 		return shopReviewRepository.summarizeByShopIds(shopIds).stream()
 			.collect(Collectors.toMap(Summary::getShopId, summary -> summary));
 	}
 
-	private ListResponse.Item toListItem(ListRow shop, Summary reviewSummary) {
+	private Set<Long> findLikedShopIds(Long userId, List<Long> shopIds) {
+		if (userId == null || shopIds.isEmpty()) {
+			return Set.of();
+		}
+		return Set.copyOf(shopLikeRepository.findLikedShopIds(userId, shopIds));
+	}
+
+	private ListResponse.Item toListItem(ListRow shop, Summary reviewSummary, boolean isLiked) {
 		return new ListResponse.Item(shop.getShopId(), shop.getShopName(), shop.getShopAddress(),
 			shop.getLatitude(), shop.getLongitude(), shop.getStatus(), readImageUrls(Arrays.asList(shop.getImageKeys())),
 			reviewSummary == null ? shop.getAverageRating() : reviewSummary.getAverageRating(),
-			reviewSummary == null ? shop.getReviewCount() : reviewSummary.getReviewCount(), false);
+			reviewSummary == null ? shop.getReviewCount() : reviewSummary.getReviewCount(), isLiked);
 	}
 
 	private String namePattern(String keyword) {
