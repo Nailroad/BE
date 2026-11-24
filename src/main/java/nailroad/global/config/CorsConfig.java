@@ -15,6 +15,8 @@ public class CorsConfig implements WebMvcConfigurer {
                         "https://nailroad.site",
                         "https://www.nailroad.site")
                 .allowedMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE")
-                .allowedHeaders("Content-Type", "Authorization");
+                .allowedHeaders("Content-Type", "Authorization", "X-XSRF-TOKEN")
+                //reissue에 쿠키가 실리게 하는 역할
+                .allowCredentials(true);
     }
 }

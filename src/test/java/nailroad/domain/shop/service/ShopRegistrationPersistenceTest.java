@@ -11,6 +11,7 @@ import nailroad.domain.shop.enums.ShopStatus;
 import nailroad.domain.shop.integration.AddressClient;
 import nailroad.domain.shop.repository.ShopRepository;
 import nailroad.domain.user.entity.User;
+import nailroad.domain.user.enums.AuthProvider;
 import nailroad.global.config.JpaAuditingConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -109,7 +110,7 @@ class ShopRegistrationPersistenceTest {
 
 	private User user(String providerId) {
 		return transactionTemplate.execute(status -> {
-			User user = User.builder().authProvider("KAKAO").providerUserId(providerId).build();
+			User user = User.builder().authProvider(AuthProvider.KAKAO).providerUserId(providerId).build();
 			entityManager.persist(user);
 			return user;
 		});
