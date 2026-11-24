@@ -15,6 +15,7 @@ import nailroad.domain.user.entity.User;
 import nailroad.global.exception.CustomException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -138,5 +139,57 @@ class DesignerServiceTest {
 		assertEquals(DesignerErrorCode.NOT_FOUND, exception.getErrorCode());
 		verify(designers).findByIdAndShop_Id(DESIGNER_ID, SHOP_ID);
 		verifyNoInteractions(imageUrls);
+	}
+
+	// 샵 소유자의 삭제 요청에 샵 ID와 디자이너 ID를 함께 사용하는지 확인한다.
+	@Test
+	void deletesDesignerFromOwnedShop() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+		when(designers.deleteForShop(DESIGNER_ID, SHOP_ID)).thenReturn(1);
+
+		service.delete(OWNER_ID, SHOP_ID, DESIGNER_ID);
+
+		verify(designers).deleteForShop(DESIGNER_ID, SHOP_ID);
+	}
+
+	// 타인 소유 샵의 삭제 요청을 디자이너 삭제 전에 거부하는지 확인한다.
+	@Test
+	void rejectsDeletionForAnotherOwnersShop() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.delete(8L, SHOP_ID, DESIGNER_ID));
+
+		assertEquals(DesignerErrorCode.NOT_SHOP_OWNER, exception.getErrorCode());
+		verifyNoInteractions(designers);
+	}
+
+	// 요청한 샵에서 삭제할 디자이너가 없으면 찾을 수 없음 오류를 반환하는지 확인한다.
+	@Test
+	void rejectsDeletionForDesignerOutsideShop() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+		when(designers.deleteForShop(DESIGNER_ID, SHOP_ID)).thenReturn(0);
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.delete(OWNER_ID, SHOP_ID, DESIGNER_ID));
+
+		assertEquals(DesignerErrorCode.NOT_FOUND, exception.getErrorCode());
+	}
+
+	// 견적 일정의 참조로 삭제가 실패하면 충돌 오류를 반환하는지 확인한다.
+	@Test
+	void rejectsDeletionForDesignerInUse() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+		when(designers.deleteForShop(DESIGNER_ID, SHOP_ID))
+			.thenThrow(new DataIntegrityViolationException("Designer referenced by an estimate schedule"));
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.delete(OWNER_ID, SHOP_ID, DESIGNER_ID));
+
+		assertEquals(DesignerErrorCode.IN_USE, exception.getErrorCode());
 	}
 }
