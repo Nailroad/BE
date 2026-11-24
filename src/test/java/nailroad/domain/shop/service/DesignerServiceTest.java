@@ -5,6 +5,7 @@ import nailroad.domain.image.service.CloudFrontImageUrlService;
 import nailroad.domain.shop.code.DesignerErrorCode;
 import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.dto.request.DesignerRegistrationRequest;
+import nailroad.domain.shop.dto.request.DesignerUpdateRequest;
 import nailroad.domain.shop.dto.response.DesignerResponse;
 import nailroad.domain.shop.entity.Designer;
 import nailroad.domain.shop.entity.Shop;
@@ -39,6 +40,7 @@ class DesignerServiceTest {
 	private final Shop shop = Shop.builder().user(owner).build();
 	private final DesignerRegistrationRequest request = new DesignerRegistrationRequest(
 		"민서", "designers/5d250e5f-17e5-45cb-86b5-d2e25aa92e09.jpg", "네일 아트 소개", "젤네일");
+	private final DesignerUpdateRequest updateRequest = new DesignerUpdateRequest("민서 아트", null, null, null);
 
 	// 소유한 샵에 디자이너 프로필을 저장하고 생성된 ID를 반환하는지 확인한다.
 	@Test
@@ -85,5 +87,56 @@ class DesignerServiceTest {
 
 		assertEquals(ShopErrorCode.NOT_FOUND, exception.getErrorCode());
 		verifyNoInteractions(designers, imageUrls);
+	}
+
+	// 이름만 보낸 경우 기존 프로필의 나머지 항목이 유지되는지 확인한다.
+	@Test
+	void updatesOnlyRequestedProfileFields() {
+		String imageUrl = "https://images.example.com/" + request.profileImageKey();
+		Designer designer = Designer.builder()
+			.shop(shop)
+			.name(request.name())
+			.profileImageUrl(imageUrl)
+			.description(request.description())
+			.specialties(request.specialties())
+			.build();
+		ReflectionTestUtils.setField(designer, "id", DESIGNER_ID);
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+		when(designers.findByIdAndShop_Id(DESIGNER_ID, SHOP_ID)).thenReturn(Optional.of(designer));
+
+		DesignerResponse response = service.update(OWNER_ID, SHOP_ID, DESIGNER_ID, updateRequest);
+
+		assertEquals(updateRequest.name(), designer.getName());
+		assertEquals(new DesignerResponse(DESIGNER_ID, updateRequest.name(), imageUrl,
+			request.description(), request.specialties()), response);
+	}
+
+	// 타인 소유 샵의 수정 요청을 디자이너 조회 전에 거부하는지 확인한다.
+	@Test
+	void rejectsUpdateForAnotherOwnersShop() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.update(8L, SHOP_ID, DESIGNER_ID, updateRequest));
+
+		assertEquals(DesignerErrorCode.NOT_SHOP_OWNER, exception.getErrorCode());
+		verifyNoInteractions(designers, imageUrls);
+	}
+
+	// 디자이너가 요청한 샵에 속하지 않으면 찾을 수 없음 오류를 반환하는지 확인한다.
+	@Test
+	void rejectsUpdateForDesignerOutsideShop() {
+		when(owner.getId()).thenReturn(OWNER_ID);
+		when(shops.findById(SHOP_ID)).thenReturn(Optional.of(shop));
+		when(designers.findByIdAndShop_Id(DESIGNER_ID, SHOP_ID)).thenReturn(Optional.empty());
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.update(OWNER_ID, SHOP_ID, DESIGNER_ID, updateRequest));
+
+		assertEquals(DesignerErrorCode.NOT_FOUND, exception.getErrorCode());
+		verify(designers).findByIdAndShop_Id(DESIGNER_ID, SHOP_ID);
+		verifyNoInteractions(imageUrls);
 	}
 }
