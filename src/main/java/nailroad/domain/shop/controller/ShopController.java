@@ -67,7 +67,7 @@ public class ShopController {
 	}
 
 	@GetMapping
-	@Operation(summary = "샵 목록 조회", description = "공개된 샵을 이름으로 검색합니다. 지도 범위가 있으면 거리, 최신, 별점, 리뷰 수로 정렬할 수 있습니다.")
+	@Operation(summary = "샵 목록 조회", description = "공개된 샵을 이름으로 검색합니다. 지도 범위가 있으면 거리, 최신, 별점, 리뷰 수로 정렬할 수 있습니다. 비로그인 조회가 가능하며, 로그인 시 내 찜 여부가 반영됩니다")
 	public ApiResponse<ShopQueryResponse.ListResponse> getShops(
 		@Parameter(hidden = true) @AuthenticationPrincipal User user,
 		@ParameterObject @ModelAttribute ShopQueryRequest request,
@@ -81,7 +81,7 @@ public class ShopController {
 	}
 
 	@GetMapping("/{shopId}")
-	@Operation(summary = "샵 상세 조회", description = "공개된 샵의 기본정보와 가격표를 조회합니다.")
+	@Operation(summary = "샵 상세 조회", description = "공개된 샵의 기본정보와 가격표를 조회합니다. 비로그인 조회가 가능하며, 로그인 시 내 찜 여부가 반영됩니다")
 	public ApiResponse<ShopQueryResponse.DetailResponse> getShop(
 		@Parameter(hidden = true) @AuthenticationPrincipal User user,
 		@PathVariable Long shopId
