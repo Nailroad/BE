@@ -17,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -50,13 +51,43 @@ class ShopLikeControllerTest {
 	// PUT /api/v1/shops/{shopId}/like 경로가 찜 추가에 연결되는지 확인한다.
 	@Test
 	void mapsPutLikeRoute() throws Exception {
-		MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+		mockMvc().perform(put("/api/v1/shops/17/like"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("COMMON401"));
+	}
+
+	// 인증된 사용자 ID와 샵 ID로 찜 해제를 요청하는지 확인한다.
+	@Test
+	void unlikesShopForAuthenticatedUser() {
+		when(user.getId()).thenReturn(7L);
+
+		ApiResponse<Void> response = controller.unlike(user, 17L);
+
+		assertEquals("COMMON200", response.getCode());
+		verify(service).unlike(7L, 17L);
+	}
+
+	// 인증된 사용자가 없으면 찜 해제를 요청하지 않고 인증 오류를 반환하는지 확인한다.
+	@Test
+	void rejectsUnlikeWithoutAuthentication() {
+		CustomException exception = assertThrows(CustomException.class, () -> controller.unlike(null, 17L));
+
+		assertEquals(GlobalErrorCode.UNAUTHORIZED, exception.getErrorCode());
+		verifyNoInteractions(service);
+	}
+
+	// DELETE /api/v1/shops/{shopId}/like 경로가 찜 해제에 연결되는지 확인한다.
+	@Test
+	void mapsDeleteLikeRoute() throws Exception {
+		mockMvc().perform(delete("/api/v1/shops/17/like"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("COMMON401"));
+	}
+
+	private MockMvc mockMvc() {
+		return MockMvcBuilders.standaloneSetup(controller)
 			.setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
 			.setControllerAdvice(new GlobalExceptionHandler())
 			.build();
-
-		mockMvc.perform(put("/api/v1/shops/17/like"))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("COMMON401"));
 	}
 }

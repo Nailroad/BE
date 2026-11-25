@@ -130,6 +130,64 @@ class ShopLikePersistenceTest {
 		assertEquals(0, shopLikes.count());
 	}
 
+	// 찜한 샵의 찜을 해제하면 찜 행이 삭제되는지 확인한다.
+	@Test
+	void unlikeRemovesLike() {
+		User customer = user("customer");
+		Shop shop = shop(user("owner"), ShopApprovalStatus.APPROVED);
+		service.like(customer.getId(), shop.getId());
+
+		service.unlike(customer.getId(), shop.getId());
+
+		assertFalse(shopLikes.existsByUser_IdAndShop_Id(customer.getId(), shop.getId()));
+		assertEquals(0, shopLikes.count());
+	}
+
+	// 찜 해제가 요청한 사용자의 해당 샵 찜만 삭제하고 다른 찜은 남기는지 확인한다.
+	@Test
+	void unlikeKeepsOtherLikes() {
+		User customer = user("customer");
+		User another = user("another");
+		User owner = user("owner");
+		Shop shop = shop(owner, ShopApprovalStatus.APPROVED);
+		Shop otherShop = shop(owner, ShopApprovalStatus.APPROVED);
+		service.like(customer.getId(), shop.getId());
+		service.like(customer.getId(), otherShop.getId());
+		service.like(another.getId(), shop.getId());
+
+		service.unlike(customer.getId(), shop.getId());
+
+		assertFalse(shopLikes.existsByUser_IdAndShop_Id(customer.getId(), shop.getId()));
+		assertTrue(shopLikes.existsByUser_IdAndShop_Id(customer.getId(), otherShop.getId()));
+		assertTrue(shopLikes.existsByUser_IdAndShop_Id(another.getId(), shop.getId()));
+	}
+
+	// 찜하지 않은 샵의 찜을 해제해도 오류 없이 성공하는지 확인한다.
+	@Test
+	void unlikeWithoutLikeSucceeds() {
+		User customer = user("customer");
+		Shop shop = shop(user("owner"), ShopApprovalStatus.APPROVED);
+
+		assertDoesNotThrow(() -> service.unlike(customer.getId(), shop.getId()));
+	}
+
+	// 찜한 뒤 승인 상태가 바뀌어 공개되지 않은 샵도 찜을 해제할 수 있는지 확인한다.
+	@Test
+	void unlikesShopThatIsNoLongerApproved() {
+		User customer = user("customer");
+		Shop shop = shop(user("owner"), ShopApprovalStatus.APPROVED);
+		service.like(customer.getId(), shop.getId());
+		transactionTemplate.executeWithoutResult(status -> entityManager
+			.createQuery("update Shop s set s.approvalStatus = :status where s.id = :id")
+			.setParameter("status", ShopApprovalStatus.REJECTED)
+			.setParameter("id", shop.getId())
+			.executeUpdate());
+
+		service.unlike(customer.getId(), shop.getId());
+
+		assertEquals(0, shopLikes.count());
+	}
+
 	private User user(String providerId) {
 		return transactionTemplate.execute(status -> {
 			User user = User.builder().authProvider(AuthProvider.KAKAO).providerUserId(providerId).build();
