@@ -12,6 +12,7 @@ import nailroad.domain.user.entity.User;
 import nailroad.global.exception.CustomException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -39,5 +40,10 @@ public class ShopLikeService {
 		} catch (DataIntegrityViolationException alreadyLiked) {
 			// 이미 다른 요청이 찜을 저장했으므로 성공으로 처리한다.
 		}
+	}
+
+	@Transactional
+	public void unlike(Long userId, Long shopId) {
+		shopLikeRepository.deleteByUserIdAndShopId(userId, shopId);
 	}
 }

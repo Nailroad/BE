@@ -10,6 +10,7 @@ import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
 import nailroad.global.response.ApiResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,5 +35,18 @@ public class ShopLikeController {
 		}
 		shopLikeService.like(user.getId(), shopId);
 		return ApiResponse.onSuccess("샵을 찜했습니다.");
+	}
+
+	@DeleteMapping
+	@Operation(summary = "샵 찜 해제", description = "샵 찜을 해제합니다. 찜하지 않은 샵이면 그대로 성공합니다.")
+	public ApiResponse<Void> unlike(
+		@Parameter(hidden = true) @AuthenticationPrincipal User user,
+		@PathVariable Long shopId
+	) {
+		if (user == null) {
+			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+		}
+		shopLikeService.unlike(user.getId(), shopId);
+		return ApiResponse.onSuccess("샵 찜을 해제했습니다.");
 	}
 }
