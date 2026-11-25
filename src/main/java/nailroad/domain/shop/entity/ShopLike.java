@@ -39,13 +39,9 @@ public class ShopLike extends BaseCreatedEntity {
 	@JoinColumn(name = "shop_id", nullable = false)
 	private Shop shop;
 
-	@Column(name = "is_liked")
-	private Boolean liked;
-
 	@Builder
-	public ShopLike(User user, Shop shop, Boolean liked) {
+	public ShopLike(User user, Shop shop) {
 		this.user = user;
 		this.shop = shop;
-		this.liked = liked;
 	}
 }
