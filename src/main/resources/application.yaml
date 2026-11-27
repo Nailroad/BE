@@ -36,7 +36,14 @@ app:
     success-redirect: ${AUTH_SUCCESS_REDIRECT:/api/v1/auth/login-complete}
     failure-redirect: ${AUTH_FAILURE_REDIRECT:/api/v1/auth/login-failed}
     phone:
+      # disabled(발송 불가) | log(로컬: 인증번호를 로그로 출력) | coolsms(실제 발송)
       mode: ${PHONE_VERIFICATION_MODE:disabled}
+      daily-limit-per-phone: ${PHONE_DAILY_LIMIT_PER_PHONE:5}
+      daily-limit-per-user: ${PHONE_DAILY_LIMIT_PER_USER:10}
+      coolsms:
+        api-key: ${COOLSMS_API_KEY:}
+        api-secret: ${COOLSMS_API_SECRET:}
+        sender: ${COOLSMS_SENDER:}
   jwt:
     secret: ${JWT_SECRET}
   s3:
