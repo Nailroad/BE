@@ -1,5 +1,6 @@
 package nailroad.domain.shop.controller;
 
+import nailroad.domain.shop.service.ShopQueryService;
 import nailroad.domain.shop.service.ShopService;
 import nailroad.global.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ShopControllerTest {
 
-	private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ShopController(mock(ShopService.class)))
+	private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+			new ShopController(mock(ShopService.class), mock(ShopQueryService.class)))
 		.setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
 		.setControllerAdvice(new GlobalExceptionHandler())
 		.build();

@@ -59,6 +59,7 @@ public class SecurityConfig {
 				.requestMatchers("/api/v1/auth/me", "/api/v1/onboarding/**").authenticated()
 				.requestMatchers("/api/v1/auth/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/v1/designs/**").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/shops", "/api/v1/shops/{shopId}").permitAll()
 				.requestMatchers("/api/v1/**").hasRole("USER")
 				.anyRequest().permitAll())
 			.exceptionHandling(exceptions -> exceptions
