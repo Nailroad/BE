@@ -1,0 +1,101 @@
+package nailroad.domain.shop.service;
+
+import jakarta.persistence.EntityManager;
+import java.util.Optional;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import nailroad.domain.shop.code.ShopErrorCode;
+import nailroad.domain.shop.dto.request.ShopRegistrationRequest;
+import nailroad.domain.shop.dto.request.ShopUpdateRequest;
+import nailroad.domain.shop.dto.response.ShopRegistrationResponse;
+import nailroad.domain.shop.dto.response.ShopUpdateResponse;
+import nailroad.domain.shop.entity.Shop;
+import nailroad.domain.shop.enums.ShopApprovalStatus;
+import nailroad.domain.shop.enums.ShopStatus;
+import nailroad.domain.shop.integration.AddressClient;
+import nailroad.domain.shop.integration.AddressClient.Coordinates;
+import nailroad.domain.shop.repository.ShopRepository;
+import nailroad.domain.user.entity.User;
+import nailroad.global.code.GlobalErrorCode;
+import nailroad.global.exception.CustomException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@Service
+@RequiredArgsConstructor
+public class ShopService {
+
+	private static final Set<ShopApprovalStatus> DUPLICATE_REGISTRATION_STATUSES =
+		Set.of(ShopApprovalStatus.PENDING, ShopApprovalStatus.APPROVED);
+
+	private final EntityManager entityManager;
+	private final ShopRepository shopRepository;
+	private final AddressClient coordinateClient;
+	private final TransactionTemplate transactionTemplate;
+
+	public ShopRegistrationResponse register(Long userId, ShopRegistrationRequest request) {
+		requireUserId(userId);
+		checkDuplicate(userId, request);
+		Optional<Coordinates> coordinates = coordinateClient.lookup(request.shopAddress());
+		return transactionTemplate.execute(status -> saveRegistration(userId, request, coordinates));
+	}
+
+	@Transactional
+	public ShopUpdateResponse update(Long userId, Long shopId, ShopUpdateRequest request) {
+		requireUserId(userId);
+		Shop shop = shopRepository.findById(shopId)
+			.orElseThrow(() -> new CustomException(ShopErrorCode.NOT_FOUND));
+		if (!userId.equals(shop.getUser().getId())) {
+			throw new CustomException(ShopErrorCode.NOT_OWNER);
+		}
+		if (shop.getApprovalStatus() != ShopApprovalStatus.APPROVED) {
+			throw new CustomException(ShopErrorCode.NOT_APPROVED);
+		}
+
+		if (request.imageKeys() != null) {
+			String shopImagePrefix = "shops/" + shopId + "/";
+			if (request.imageKeys().stream().anyMatch(key -> !key.startsWith(shopImagePrefix))) {
+				throw new CustomException(ShopErrorCode.INVALID_IMAGE_KEY);
+			}
+		}
+
+		shop.updateBasicInfo(request.shopPhone(), request.businessHours(), request.status(),
+			request.facilities(), request.imageKeys());
+		return new ShopUpdateResponse(shop.getId(), shop.getShopPhone(), shop.getBusinessHour(),
+			shop.getStatus(), shop.getFacility(), shop.getShopImage());
+	}
+
+	private void requireUserId(Long userId) {
+		if (userId == null || userId < 1) {
+			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+		}
+	}
+
+	private ShopRegistrationResponse saveRegistration(
+		Long userId, ShopRegistrationRequest request, Optional<Coordinates> coordinates
+	) {
+		User user = entityManager.getReference(User.class, userId);
+
+		Shop shop = shopRepository.save(Shop.builder()
+			.user(user)
+			.shopName(request.shopName())
+			.shopOwnerPhone(request.shopOwnerPhone())
+			.shopPhone(request.shopPhone())
+			.shopAddress(request.shopAddress())
+			.detailAddress(request.detailAddress())
+			.latitude(coordinates.map(Coordinates::latitude).orElse(null))
+			.longitude(coordinates.map(Coordinates::longitude).orElse(null))
+			.approvalStatus(ShopApprovalStatus.PENDING)
+			.status(ShopStatus.PAUSED)
+			.build());
+		return new ShopRegistrationResponse(shop.getId(), shop.getApprovalStatus());
+	}
+
+	private void checkDuplicate(Long userId, ShopRegistrationRequest request) {
+		if (shopRepository.existsByUser_IdAndShopNameAndShopAddressAndApprovalStatusIn(
+			userId, request.shopName(), request.shopAddress(), DUPLICATE_REGISTRATION_STATUSES)) {
+			throw new CustomException(ShopErrorCode.DUPLICATE_REGISTRATION);
+		}
+	}
+}

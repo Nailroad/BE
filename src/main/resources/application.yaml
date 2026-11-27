@@ -27,6 +27,9 @@ spring:
       ddl-auto: update
     open-in-view: false
 app:
+  juso:
+    search-key: ${JUSO_SEARCH_API_KEY:}
+    coordinate-key: ${JUSO_COORDINATE_API_KEY:}
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
     cookie-same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
@@ -46,6 +49,8 @@ app:
   s3:
     bucket: ${S3_BUCKET}
     region: ${AWS_REGION}
+  cloudfront:
+    base-url: ${CLOUDFRONT_BASE_URL}
 
 springdoc:
   swagger-ui:

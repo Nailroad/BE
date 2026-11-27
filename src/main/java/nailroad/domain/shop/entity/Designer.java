@@ -13,9 +13,11 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Getter
 @Entity
+@DynamicUpdate
 @Table(name = "designer")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Designer {
@@ -48,5 +50,20 @@ public class Designer {
 		this.profileImageUrl = profileImageUrl;
 		this.description = description;
 		this.specialties = specialties;
+	}
+
+	public void updateProfile(String name, String profileImageUrl, String description, String specialties) {
+		if (name != null) {
+			this.name = name;
+		}
+		if (profileImageUrl != null) {
+			this.profileImageUrl = profileImageUrl;
+		}
+		if (description != null) {
+			this.description = description;
+		}
+		if (specialties != null) {
+			this.specialties = specialties;
+		}
 	}
 }
