@@ -1,6 +1,7 @@
 package nailroad.domain.shop.service;
 
 import jakarta.persistence.EntityManager;
+import java.util.List;
 import java.util.UUID;
 import nailroad.domain.shop.code.ShopErrorCode;
 import nailroad.domain.shop.entity.Shop;
@@ -186,6 +187,26 @@ class ShopLikePersistenceTest {
 		service.unlike(customer.getId(), shop.getId());
 
 		assertEquals(0, shopLikes.count());
+	}
+
+	// 샵 조회의 찜 여부가 요청한 사용자의 현재 찜 행만 반영하는지 확인한다.
+	@Test
+	void findsOnlyCurrentLikesOfUser() {
+		User customer = user("customer");
+		User another = user("another");
+		User owner = user("owner");
+		Shop liked = shop(owner, ShopApprovalStatus.APPROVED);
+		Shop unliked = shop(owner, ShopApprovalStatus.APPROVED);
+		Shop likedByAnother = shop(owner, ShopApprovalStatus.APPROVED);
+		service.like(customer.getId(), liked.getId());
+		service.like(customer.getId(), unliked.getId());
+		service.unlike(customer.getId(), unliked.getId());
+		service.like(another.getId(), likedByAnother.getId());
+
+		List<Long> likedShopIds = shopLikes.findLikedShopIds(customer.getId(),
+			List.of(liked.getId(), unliked.getId(), likedByAnother.getId()));
+
+		assertEquals(List.of(liked.getId()), likedShopIds);
 	}
 
 	private User user(String providerId) {
