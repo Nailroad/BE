@@ -27,6 +27,7 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 	implementation 'org.locationtech.proj4j:proj4j:1.4.3'
 	implementation 'software.amazon.awssdk:s3:2.57.3'
+	implementation 'net.nurigo:sdk:4.3.2'
 	runtimeOnly 'org.locationtech.proj4j:proj4j-epsg:1.4.3'
 	runtimeOnly 'org.postgresql:postgresql'
 	compileOnly 'org.projectlombok:lombok'
