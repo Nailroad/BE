@@ -1,7 +1,10 @@
 package nailroad.domain.notification.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
+import nailroad.domain.notification.enums.NotificationType;
 import nailroad.domain.notification.service.NotificationService;
 import nailroad.domain.notification.service.PushSettingService;
 import nailroad.domain.user.entity.User;
@@ -46,6 +49,35 @@ class NotificationControllerTest {
 	@AfterEach
 	void clearAuthentication() {
 		SecurityContextHolder.clearContext();
+	}
+
+	// GET /api/v1/notifications가 로그인한 사용자의 알림 목록을 커서와 크기로 조회하는지 확인한다.
+	@Test
+	void getsNotificationList() throws Exception {
+		ListResponse.Item item = new ListResponse.Item(3L, NotificationType.RESERVATION_CONFIRMED,
+			"예약이 확정되었어요!", "손네일 10월 29일(수)", 17L, false, LocalDateTime.of(2026, 10, 29, 14, 0));
+		when(notificationService.getList(7L, 5L, 10))
+			.thenReturn(new ListResponse(List.of(item), 10, true, 3L));
+
+		mockMvc.perform(get("/api/v1/notifications").param("cursor", "5").param("size", "10"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.items[0].notificationId").value(3))
+			.andExpect(jsonPath("$.result.items[0].type").value("RESERVATION_CONFIRMED"))
+			.andExpect(jsonPath("$.result.items[0].isRead").value(false))
+			.andExpect(jsonPath("$.result.hasNext").value(true))
+			.andExpect(jsonPath("$.result.nextCursor").value(3));
+	}
+
+	// 커서와 크기 없이 알림 목록을 요청하면 기본값 결정을 서비스에 맡기는지 확인한다.
+	@Test
+	void getsFirstNotificationPageWithoutParameters() throws Exception {
+		when(notificationService.getList(7L, null, null))
+			.thenReturn(new ListResponse(List.of(), 20, false, null));
+
+		mockMvc.perform(get("/api/v1/notifications"))
+			.andExpect(status().isOk());
+
+		verify(notificationService).getList(7L, null, null);
 	}
 
 	// GET /api/v1/notifications/push-setting이 로그인한 사용자의 푸시 알림 수신 여부를 응답하는지 확인한다.
