@@ -11,7 +11,10 @@ import nailroad.global.common.BaseCreatedEntity;
 
 @Getter
 @Entity
-@Table(name = "notification")
+@Table(
+	name = "notification",
+	indexes = @Index(name = "idx_notification_user_id_notification_id", columnList = "user_id, notification_id")
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends BaseCreatedEntity {
 
@@ -34,31 +37,25 @@ public class Notification extends BaseCreatedEntity {
 	@Column(name = "type")
 	private NotificationType type;
 
-	@Column(name = "content")
-	private String content;
-
 	@Column(name = "is_read", nullable = false)
-	private Boolean read;
+	private boolean read;
 
 	@Column(name = "target_id")
 	private Long targetId;
 
+	/** 새 알림은 항상 읽지 않은 상태로 만든다. */
 	@Builder
 	public Notification(
 		User user,
 		String title,
 		String body,
 		NotificationType type,
-		String content,
-		Boolean read,
 		Long targetId
 	) {
 		this.user = user;
 		this.title = title;
 		this.body = body;
 		this.type = type;
-		this.content = content;
-		this.read = read;
 		this.targetId = targetId;
 	}
 }
