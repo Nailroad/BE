@@ -2,6 +2,9 @@ package nailroad.domain.notification.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
@@ -13,6 +16,8 @@ import nailroad.global.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -89,6 +94,37 @@ class NotificationControllerTest {
 		mockMvc.perform(get("/api/v1/notifications/unread"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.result.hasUnread").value(true));
+	}
+
+	// PATCH /api/v1/notifications/read가 로그인한 사용자의 선택한 알림 읽음 처리를 요청하는지 확인한다.
+	@Test
+	void readsSelectedNotifications() throws Exception {
+		mockMvc.perform(patch("/api/v1/notifications/read")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"notificationIds\": [5, 4]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("COMMON200"));
+
+		verify(notificationService).read(7L, List.of(5L, 4L));
+	}
+
+	// 읽음 처리할 알림 ID가 없거나 비어 있거나 너무 많으면 읽음 처리하지 않고 입력값 오류를 반환하는지 확인한다.
+	@ParameterizedTest
+	@MethodSource("invalidReadRequests")
+	void rejectsInvalidReadRequest(String body) throws Exception {
+		mockMvc.perform(patch("/api/v1/notifications/read")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION400"));
+
+		verifyNoInteractions(notificationService);
+	}
+
+	static Stream<String> invalidReadRequests() {
+		String tooMany = LongStream.rangeClosed(1, 101).mapToObj(String::valueOf).collect(Collectors.joining(","));
+		return Stream.of("{}", "{\"notificationIds\": []}", "{\"notificationIds\": [null]}",
+			"{\"notificationIds\": [" + tooMany + "]}");
 	}
 
 	// GET /api/v1/notifications/push-setting이 로그인한 사용자의 푸시 알림 수신 여부를 응답하는지 확인한다.

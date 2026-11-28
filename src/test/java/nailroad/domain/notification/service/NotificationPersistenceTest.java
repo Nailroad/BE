@@ -2,6 +2,7 @@ package nailroad.domain.notification.service;
 
 import java.util.List;
 import java.util.UUID;
+import nailroad.domain.notification.code.NotificationErrorCode;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
 import nailroad.domain.notification.entity.Notification;
 import nailroad.domain.notification.enums.NotificationType;
@@ -125,6 +126,16 @@ class NotificationPersistenceTest {
 		assertTrue(service.getUnread(customer.getId()).hasUnread());
 	}
 
+	// 모든 알림을 읽었으면 안 읽은 알림이 없다고 응답하는지 확인한다.
+	@Test
+	void hasNoUnreadWhenAllNotificationsAreRead() {
+		User customer = user("customer");
+		Notification notification = notification(customer);
+		service.read(customer.getId(), List.of(notification.getId()));
+
+		assertFalse(service.getUnread(customer.getId()).hasUnread());
+	}
+
 	// 다른 사용자의 안 읽은 알림은 안 읽은 알림 여부에 반영하지 않는지 확인한다.
 	@Test
 	void ignoresUnreadNotificationsOfOtherUsers() {
@@ -132,6 +143,79 @@ class NotificationPersistenceTest {
 		notification(user("another"));
 
 		assertFalse(service.getUnread(customer.getId()).hasUnread());
+	}
+
+	// 내 알림 하나를 읽음 처리하면 읽은 상태로 저장되는지 확인한다.
+	@Test
+	void readsOwnNotification() {
+		User customer = user("customer");
+		Notification notification = notification(customer);
+
+		service.read(customer.getId(), List.of(notification.getId()));
+
+		assertTrue(isRead(notification));
+	}
+
+	// 선택한 알림만 읽음 처리하고 선택하지 않은 알림은 읽지 않은 상태로 남기는지 확인한다.
+	@Test
+	void readsSelectedNotificationsOnly() {
+		User customer = user("customer");
+		Notification first = notification(customer);
+		Notification second = notification(customer);
+		Notification unselected = notification(customer);
+
+		service.read(customer.getId(), List.of(first.getId(), second.getId()));
+
+		assertTrue(isRead(first));
+		assertTrue(isRead(second));
+		assertFalse(isRead(unselected));
+	}
+
+	// 이미 읽은 알림이나 같은 ID가 섞여 있어도 오류 없이 읽음 처리하는지 확인한다.
+	@Test
+	void readsAlreadyReadAndDuplicatedNotifications() {
+		User customer = user("customer");
+		Notification alreadyRead = notification(customer);
+		Notification unread = notification(customer);
+		service.read(customer.getId(), List.of(alreadyRead.getId()));
+
+		assertDoesNotThrow(() -> service.read(customer.getId(),
+			List.of(alreadyRead.getId(), unread.getId(), unread.getId())));
+
+		assertTrue(isRead(alreadyRead));
+		assertTrue(isRead(unread));
+	}
+
+	// 다른 사용자의 알림이 섞여 있으면 알림 없음 오류를 반환하고 어떤 알림도 읽음 처리하지 않는지 확인한다.
+	@Test
+	void rejectsReadingNotificationOfAnotherUser() {
+		User customer = user("customer");
+		Notification own = notification(customer);
+		Notification othersNotification = notification(user("another"));
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.read(customer.getId(), List.of(own.getId(), othersNotification.getId())));
+
+		assertEquals(NotificationErrorCode.NOT_FOUND, exception.getErrorCode());
+		assertFalse(isRead(own));
+		assertFalse(isRead(othersNotification));
+	}
+
+	// 존재하지 않는 알림이 섞여 있으면 알림 없음 오류를 반환하고 어떤 알림도 읽음 처리하지 않는지 확인한다.
+	@Test
+	void rejectsReadingMissingNotification() {
+		User customer = user("customer");
+		Notification own = notification(customer);
+
+		CustomException exception = assertThrows(CustomException.class,
+			() -> service.read(customer.getId(), List.of(own.getId(), Long.MAX_VALUE)));
+
+		assertEquals(NotificationErrorCode.NOT_FOUND, exception.getErrorCode());
+		assertFalse(isRead(own));
+	}
+
+	private boolean isRead(Notification notification) {
+		return notifications.findById(notification.getId()).orElseThrow().isRead();
 	}
 
 	private User user(String providerId) {
