@@ -63,8 +63,8 @@ public class User extends BaseEntity {
 	@Column(name = "preferred_style_codes")
 	private PreferredStyleCode preferredStyleCodes;
 
-	@Column(name = "push_enabled")
-	private Boolean pushEnabled;
+	@Column(name = "push_enabled", nullable = false)
+	private boolean pushEnabled;
 
 	@Builder
 	public User(
@@ -77,7 +77,7 @@ public class User extends BaseEntity {
 		BigDecimal latitude,
 		String email,
 		PreferredStyleCode preferredStyleCodes,
-		Boolean pushEnabled
+		boolean pushEnabled
 	) {
 		this.providerUserId = providerUserId;
 		this.authProvider = authProvider;
@@ -88,6 +88,10 @@ public class User extends BaseEntity {
 		this.latitude = latitude;
 		this.email = email;
 		this.preferredStyleCodes = preferredStyleCodes;
+		this.pushEnabled = pushEnabled;
+	}
+
+	public void changePushEnabled(boolean pushEnabled) {
 		this.pushEnabled = pushEnabled;
 	}
 
