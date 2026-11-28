@@ -3,6 +3,7 @@ package nailroad.domain.notification.controller;
 import java.time.LocalDateTime;
 import java.util.List;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
+import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
 import nailroad.domain.notification.enums.NotificationType;
 import nailroad.domain.notification.service.NotificationService;
@@ -78,6 +79,16 @@ class NotificationControllerTest {
 			.andExpect(status().isOk());
 
 		verify(notificationService).getList(7L, null, null);
+	}
+
+	// GET /api/v1/notifications/unread가 로그인한 사용자의 안 읽은 알림 여부를 응답하는지 확인한다.
+	@Test
+	void getsUnreadNotification() throws Exception {
+		when(notificationService.getUnread(7L)).thenReturn(new UnreadResponse(true));
+
+		mockMvc.perform(get("/api/v1/notifications/unread"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.result.hasUnread").value(true));
 	}
 
 	// GET /api/v1/notifications/push-setting이 로그인한 사용자의 푸시 알림 수신 여부를 응답하는지 확인한다.

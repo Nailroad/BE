@@ -116,6 +116,24 @@ class NotificationPersistenceTest {
 		assertEquals(GlobalErrorCode.BAD_REQUEST, exception.getErrorCode());
 	}
 
+	// 읽지 않은 알림이 하나라도 있으면 안 읽은 알림이 있다고 응답하는지 확인한다.
+	@Test
+	void hasUnreadWhenUnreadNotificationExists() {
+		User customer = user("customer");
+		notification(customer);
+
+		assertTrue(service.getUnread(customer.getId()).hasUnread());
+	}
+
+	// 다른 사용자의 안 읽은 알림은 안 읽은 알림 여부에 반영하지 않는지 확인한다.
+	@Test
+	void ignoresUnreadNotificationsOfOtherUsers() {
+		User customer = user("customer");
+		notification(user("another"));
+
+		assertFalse(service.getUnread(customer.getId()).hasUnread());
+	}
+
 	private User user(String providerId) {
 		return users.saveAndFlush(User.builder().authProvider(AuthProvider.KAKAO).providerUserId(providerId).build());
 	}
