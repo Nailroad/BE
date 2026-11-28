@@ -70,6 +70,22 @@ class ImageControllerTest {
         verify(service).issueForShop(7L, 17L, FILES);
     }
 
+    // 견적 이미지 요청이면 인증된 사용자 ID로 회원 경로 발급을 요청하는지 확인합니다.
+    @Test
+    void passesAuthenticatedUserIdForEstimateImages() {
+        ImageUploadUrlRequest request = new ImageUploadUrlRequest("ESTIMATE", null, FILES);
+        ImageUploadUrlResponse issued = new ImageUploadUrlResponse(List.of(
+                new UploadItem("https://test.example/photo.jpg", "estimates/7/photo.jpg", 300)
+        ));
+        when(user.getId()).thenReturn(7L);
+        when(service.issueForEstimate(7L, FILES)).thenReturn(issued);
+
+        ApiResponse<ImageUploadUrlResponse> response = controller.issueUploadUrl(user, request);
+
+        assertSame(issued, response.getResult());
+        verify(service).issueForEstimate(7L, FILES);
+    }
+
     // 인증된 사용자가 없으면 URL 발급을 거절하는지 확인합니다.
     @Test
     void requiresAnAuthenticatedPrincipal() {

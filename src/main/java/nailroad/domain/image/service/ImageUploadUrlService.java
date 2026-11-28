@@ -46,10 +46,21 @@ public class ImageUploadUrlService {
     }
 
     public ImageUploadUrlResponse issue(ImagePurpose purpose, List<FileMetadata> files) {
-        if (purpose == ImagePurpose.SHOP) {
+        if (purpose == ImagePurpose.SHOP || purpose == ImagePurpose.ESTIMATE) {
             throw new CustomException(GlobalErrorCode.VALIDATION_FAILED);
         }
         return issueWithPrefix(purpose.getKeyPrefix(), files);
+    }
+
+    /**
+     * 견적 요청 이미지는 요청한 회원의 경로(estimates/{userId}) 아래에 발급한다.
+     * 견적 등록 시 키가 이 경로로 시작하는지 확인해 다른 사람이 올린 이미지를 쓰지 못하게 한다.
+     */
+    public ImageUploadUrlResponse issueForEstimate(Long userId, List<FileMetadata> files) {
+        if (userId == null || userId < 1) {
+            throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
+        }
+        return issueWithPrefix(ImagePurpose.ESTIMATE.getKeyPrefix() + "/" + userId, files);
     }
 
     public ImageUploadUrlResponse issueForShop(Long userId, Long shopId, List<FileMetadata> files) {

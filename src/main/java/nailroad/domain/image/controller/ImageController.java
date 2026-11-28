@@ -34,6 +34,7 @@ public class ImageController {
             description = """
                     요청한 파일 순서대로 업로드 URL을 발급합니다. 각 URL에 해당 파일을 PUT으로 전송합니다.
                     SHOP은 승인된 샵의 소유자가 shopId를 전달해야 합니다.
+                    ESTIMATE는 매칭(직접 업로드) 견적 요청 이미지이며, 로그인한 회원의 경로(estimates/{userId})로 발급합니다.
                     """)
     public ApiResponse<ImageUploadUrlResponse> issueUploadUrl(
             @Parameter(hidden = true) @AuthenticationPrincipal User user,
@@ -44,9 +45,11 @@ public class ImageController {
         }
 
         ImagePurpose purpose = parsePurpose(request.purpose());
-        ImageUploadUrlResponse response = purpose == ImagePurpose.SHOP
-                ? imageUploadUrlService.issueForShop(user.getId(), request.shopId(), request.files())
-                : imageUploadUrlService.issue(purpose, request.files());
+        ImageUploadUrlResponse response = switch (purpose) {
+            case SHOP -> imageUploadUrlService.issueForShop(user.getId(), request.shopId(), request.files());
+            case ESTIMATE -> imageUploadUrlService.issueForEstimate(user.getId(), request.files());
+            default -> imageUploadUrlService.issue(purpose, request.files());
+        };
         return ApiResponse.onSuccess("이미지 업로드 URL을 발급했습니다.", response);
     }
 
