@@ -2,6 +2,7 @@ package nailroad.domain.notification.controller;
 
 import java.util.List;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
+import nailroad.domain.notification.service.NotificationService;
 import nailroad.domain.notification.service.PushSettingService;
 import nailroad.domain.user.entity.User;
 import nailroad.global.handler.GlobalExceptionHandler;
@@ -26,9 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class NotificationControllerTest {
 
+	private final NotificationService notificationService = mock(NotificationService.class);
 	private final PushSettingService pushSettingService = mock(PushSettingService.class);
 	private final MockMvc mockMvc = MockMvcBuilders
-		.standaloneSetup(new NotificationController(pushSettingService))
+		.standaloneSetup(new NotificationController(notificationService, pushSettingService))
 		.setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
 		.setControllerAdvice(new GlobalExceptionHandler())
 		.build();
