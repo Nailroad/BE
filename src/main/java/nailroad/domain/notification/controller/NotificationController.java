@@ -9,8 +9,6 @@ import nailroad.domain.notification.dto.request.PushSettingRequest;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
 import nailroad.domain.notification.service.PushSettingService;
 import nailroad.domain.user.entity.User;
-import nailroad.global.code.GlobalErrorCode;
-import nailroad.global.exception.CustomException;
 import nailroad.global.response.ApiResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,9 +30,6 @@ public class NotificationController {
 	public ApiResponse<PushSettingResponse> getPushSetting(
 		@Parameter(hidden = true) @AuthenticationPrincipal User user
 	) {
-		if (user == null) {
-			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
-		}
 		return ApiResponse.onSuccess("푸시 알림 설정을 조회했습니다.", PushSettingResponse.from(user));
 	}
 
@@ -44,9 +39,6 @@ public class NotificationController {
 		@Parameter(hidden = true) @AuthenticationPrincipal User user,
 		@Valid @RequestBody PushSettingRequest request
 	) {
-		if (user == null) {
-			throw new CustomException(GlobalErrorCode.UNAUTHORIZED);
-		}
 		PushSettingResponse response = pushSettingService.change(user.getId(), request.pushEnabled());
 		return ApiResponse.onSuccess("푸시 알림 설정을 변경했습니다.", response);
 	}
