@@ -43,4 +43,10 @@ public final class NotificationQueryResponse {
 			}
 		}
 	}
+
+	@Schema(name = "UnreadNotificationResponse")
+	public record UnreadResponse(
+		@Schema(description = "읽지 않은 알림이 있는지 여부", example = "true") boolean hasUnread
+	) {
+	}
 }

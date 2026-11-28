@@ -16,4 +16,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 		ORDER BY notification.id DESC
 		""")
 	Slice<Notification> findPage(@Param("userId") Long userId, @Param("cursor") long cursor, Pageable pageable);
+
+	boolean existsByUser_IdAndReadFalse(Long userId);
 }

@@ -3,6 +3,7 @@ package nailroad.domain.notification.service;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
+import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
 import nailroad.domain.notification.repository.NotificationRepository;
 import nailroad.global.code.GlobalErrorCode;
 import nailroad.global.exception.CustomException;
@@ -27,5 +28,9 @@ public class NotificationService {
 		}
 		long maxExclusiveId = Objects.requireNonNullElse(cursor, Long.MAX_VALUE);
 		return ListResponse.from(notificationRepository.findPage(userId, maxExclusiveId, PageRequest.ofSize(pageSize)));
+	}
+
+	public UnreadResponse getUnread(Long userId) {
+		return new UnreadResponse(notificationRepository.existsByUser_IdAndReadFalse(userId));
 	}
 }

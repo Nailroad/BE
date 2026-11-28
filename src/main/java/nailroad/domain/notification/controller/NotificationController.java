@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import nailroad.domain.notification.dto.request.PushSettingRequest;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
+import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
 import nailroad.domain.notification.dto.response.PushSettingResponse;
 import nailroad.domain.notification.service.NotificationService;
 import nailroad.domain.notification.service.PushSettingService;
@@ -37,6 +38,12 @@ public class NotificationController {
 		@Parameter(description = "한 번에 조회할 알림 수 (기본 20, 최대 100)") @RequestParam(required = false) Integer size
 	) {
 		return ApiResponse.onSuccess("알림 목록을 조회했습니다.", notificationService.getList(user.getId(), cursor, size));
+	}
+
+	@GetMapping("/unread")
+	@Operation(summary = "안 읽은 알림 여부 조회", description = "읽지 않은 알림이 있는지 조회합니다. 홈 화면 알림 표시에 사용합니다.")
+	public ApiResponse<UnreadResponse> getUnread(@Parameter(hidden = true) @AuthenticationPrincipal User user) {
+		return ApiResponse.onSuccess("안 읽은 알림 여부를 조회했습니다.", notificationService.getUnread(user.getId()));
 	}
 
 	@GetMapping("/push-setting")
