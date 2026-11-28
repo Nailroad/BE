@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import nailroad.domain.notification.dto.request.NotificationReadRequest;
 import nailroad.domain.notification.dto.request.PushSettingRequest;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
@@ -44,6 +45,18 @@ public class NotificationController {
 	@Operation(summary = "안 읽은 알림 여부 조회", description = "읽지 않은 알림이 있는지 조회합니다. 홈 화면 알림 표시에 사용합니다.")
 	public ApiResponse<UnreadResponse> getUnread(@Parameter(hidden = true) @AuthenticationPrincipal User user) {
 		return ApiResponse.onSuccess("안 읽은 알림 여부를 조회했습니다.", notificationService.getUnread(user.getId()));
+	}
+
+	@PatchMapping("/read")
+	@Operation(summary = "알림 읽음 처리",
+		description = "선택한 알림을 읽음 처리합니다. 알림 하나를 누를 때도 ID 하나를 담아 호출합니다. "
+			+ "이미 읽은 알림이 섞여 있어도 성공하고, 없는 알림이나 다른 사용자의 알림이 섞여 있으면 어떤 알림도 읽음 처리하지 않습니다.")
+	public ApiResponse<Void> read(
+		@Parameter(hidden = true) @AuthenticationPrincipal User user,
+		@Valid @RequestBody NotificationReadRequest request
+	) {
+		notificationService.read(user.getId(), request.notificationIds());
+		return ApiResponse.onSuccess("알림을 읽음 처리했습니다.");
 	}
 
 	@GetMapping("/push-setting")

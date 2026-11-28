@@ -1,7 +1,10 @@
 package nailroad.domain.notification.service;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import nailroad.domain.notification.code.NotificationErrorCode;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.ListResponse;
 import nailroad.domain.notification.dto.response.NotificationQueryResponse.UnreadResponse;
 import nailroad.domain.notification.repository.NotificationRepository;
@@ -32,5 +35,14 @@ public class NotificationService {
 
 	public UnreadResponse getUnread(Long userId) {
 		return new UnreadResponse(notificationRepository.existsByUser_IdAndReadFalse(userId));
+	}
+
+	/** 내 알림이 아니거나 없는 알림이 하나라도 섞여 있으면 예외로 롤백해 어떤 알림도 읽음 처리하지 않는다. */
+	@Transactional
+	public void read(Long userId, List<Long> notificationIds) {
+		Set<Long> distinctIds = Set.copyOf(notificationIds);
+		if (notificationRepository.markAsRead(userId, distinctIds) != distinctIds.size()) {
+			throw new CustomException(NotificationErrorCode.NOT_FOUND);
+		}
 	}
 }
